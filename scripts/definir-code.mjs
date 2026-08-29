@@ -7,10 +7,19 @@
  *
  *   npm run verrou
  */
+import { createInterface } from 'node:readline/promises'
 import { pbkdf2Sync, randomBytes } from 'node:crypto'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+
+// Une erreur ici doit rester lisible : pas de pile d'appels au visage.
+const echec = (e) => {
+  console.error(`\nÉchec : ${e?.message ?? e}\n`)
+  process.exit(1)
+}
+process.on('unhandledRejection', echec)
+process.on('uncaughtException', echec)
 
 const ITERATIONS = 200_000
 const FICHIER = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'verrou.json')
@@ -21,14 +30,27 @@ const CTRL_C = String.fromCharCode(3)
 const FIN_FICHIER = String.fromCharCode(4)
 const RETOUR_ARRIERE = String.fromCharCode(127)
 
+/**
+ * Repli quand le terminal n'est pas transmis (c'est le cas de npm sur certaines
+ * consoles Windows) : la saisie est visible, mais la commande fonctionne.
+ * Une seule interface readline, sinon la deuxième question perd ce qui a déjà
+ * été tapé dans le tampon d'entrée.
+ */
+let lecteur = null
+async function demandeVisible(question) {
+  lecteur ??= createInterface({ input: process.stdin, output: process.stdout })
+  const ferme = new Promise((_, rejeter) => {
+    lecteur.once('close', () => rejeter(new Error("saisie interrompue (entrée fermée)")))
+  })
+  // Sans cette course, une entrée fermée laisserait la commande figée sans rien dire.
+  return Promise.race([lecteur.question(question), ferme])
+}
+
 /** Saisie sans écho : le code n'apparaît pas à l'écran ni dans l'historique. */
 function demandeMasquee(question) {
-  return new Promise((resolve, rejeter) => {
+  if (!process.stdin.isTTY) return demandeVisible(question)
+  return new Promise((resolve) => {
     process.stdout.write(question)
-    if (!process.stdin.isTTY) {
-      rejeter(new Error("Ce script doit être lancé dans un vrai terminal."))
-      return
-    }
     process.stdin.setRawMode(true)
     process.stdin.resume()
     let saisie = ''
@@ -62,7 +84,12 @@ function demandeMasquee(question) {
 
 console.log("\nCode d'accès de l'application")
 console.log('-----------------------------')
-console.log("Il sera demandé une seule fois par appareil, à la première ouverture.\n")
+console.log("Il sera demandé une seule fois par appareil, à la première ouverture.")
+if (!process.stdin.isTTY) {
+  console.log("\n/!\\ Ce terminal ne permet pas de masquer la saisie : ton code va")
+  console.log('    s\'afficher en clair. Efface la fenêtre ensuite (commande "cls").')
+}
+console.log('')
 
 const code = (await demandeMasquee('Nouveau code      : ')).trim()
 
@@ -90,3 +117,5 @@ writeFileSync(FICHIER, `${JSON.stringify(config, null, 2)}\n`)
 
 console.log('\nCode enregistré (empreinte seulement) dans src/verrou.json.')
 console.log('Il prendra effet en ligne à la prochaine publication.\n')
+
+lecteur?.close()
