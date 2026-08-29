@@ -165,6 +165,19 @@ begin
   end loop;
 end $$;
 
+-- --------------------------------------------------------- privilèges
+
+-- Les règles RLS filtrent les lignes, mais encore faut-il avoir le droit
+-- d'approcher la table. Sur ce projet, ni anon ni authenticated ne l'avaient :
+-- sans ces lignes, l'application échouerait avec « permission denied » même
+-- après connexion. On donne à "authenticated" seulement, jamais à "anon".
+grant usage on schema public to authenticated;
+grant select, insert, update, delete on all tables in schema public to authenticated;
+
+-- Même chose pour les tables qui seraient créées plus tard.
+alter default privileges in schema public
+  grant select, insert, update, delete on tables to authenticated;
+
 -- --------------------------------------------- horodatage automatique
 
 -- Le serveur fait foi sur "maj_le" : une horloge de téléphone mal réglée ne doit
