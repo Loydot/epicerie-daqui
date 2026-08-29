@@ -12,13 +12,17 @@ import Dlc from './pages/Dlc'
 import Nettoyage from './pages/Nettoyage'
 import Registres from './pages/Registres'
 import Reglages from './pages/Reglages'
+import Verrou from './components/Verrou'
 import { amorceSiVide } from './db/seed'
+import { dejaOuvert } from './lib/verrou'
 
 export default function App() {
   const [pret, setPret] = useState(false)
+  const [ouvert, setOuvert] = useState(dejaOuvert)
 
   useEffect(() => { void amorceSiVide().finally(() => setPret(true)) }, [])
 
+  if (!ouvert) return <Verrou surOuverture={() => setOuvert(true)} />
   if (!pret) return null
 
   // HashRouter : l'appli marche telle quelle sur GitHub Pages et en ouverture directe.
