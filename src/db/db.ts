@@ -31,6 +31,13 @@ class HaccpDb extends Dexie {
       operateurs: 'id, nom',
       reglages: 'cle',
     })
+
+    // v2 : file d'attente des fiches scannees hors ligne.
+    this.version(2).stores({
+      produits: 'id, &ean, nom, marque, rayon, fournisseur, majLe, aEnrichir',
+    }).upgrade((tx) => tx.table('produits').toCollection().modify((p) => {
+      p.aEnrichir = 0
+    }))
   }
 }
 

@@ -64,7 +64,11 @@ async function interroge(base: string, ean: string, signal: AbortSignal): Promis
  * Renvoie null si le produit est inconnu ou si le réseau ne repond pas : dans les
  * deux cas l'appli bascule sur la saisie manuelle, sans jamais bloquer le scan.
  */
-export async function chercheParEan(ean: string, timeoutMs = 6000): Promise<FicheOff | null> {
+export async function chercheParEan(ean: string, timeoutMs = 3500): Promise<FicheOff | null> {
+  // En magasin il n'y a pas de reseau : inutile de faire patienter la personne
+  // pendant tout le delai d'expiration a chaque produit inconnu.
+  if (!navigator.onLine) return null
+
   const ctrl = new AbortController()
   const minuteur = setTimeout(() => ctrl.abort(), timeoutMs)
   try {

@@ -23,6 +23,11 @@ export interface Produit {
   allergenes: string
   nutriscore: string
   source: Source
+  /**
+   * 1 quand le produit a ete scanne sans reseau : seul le code-barres est connu.
+   * La fiche sera completee automatiquement au retour de la connexion.
+   */
+  aEnrichir: number
   note: string
   creeLe: string
   majLe: string

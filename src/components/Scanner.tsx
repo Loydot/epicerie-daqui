@@ -21,6 +21,7 @@ export default function Scanner({ surCode, enPause = false }: Props) {
 
   const [erreur, setErreur] = useState('')
   const [torcheDispo, setTorcheDispo] = useState(false)
+  const [moteur, setMoteur] = useState<'natif' | 'zxing' | null>(null)
   const [torcheOn, setTorcheOn] = useState(false)
   const [saisieOuverte, setSaisieOuverte] = useState(false)
   const [saisie, setSaisie] = useState('')
@@ -47,6 +48,7 @@ export default function Scanner({ surCode, enPause = false }: Props) {
         if (annule) { session.arrete(); return }
         sessionRef.current = session
         setTorcheDispo(session.torcheDispo)
+        setMoteur(session.moteur)
         setErreur('')
       } catch (e) {
         const nom = (e as DOMException)?.name
@@ -98,6 +100,10 @@ export default function Scanner({ surCode, enPause = false }: Props) {
       {!erreur && (
         <div className="scene">
           <video ref={videoRef} muted playsInline />
+          <div className="voile haut" />
+          <div className="voile bas" />
+          <div className="voile gauche" />
+          <div className="voile droite" />
           <div className="viseur" />
           <div className="scene-outils">
             {torcheDispo && (
@@ -110,6 +116,13 @@ export default function Scanner({ surCode, enPause = false }: Props) {
             </button>
           </div>
         </div>
+      )}
+
+      {moteur === 'zxing' && (
+        <p className="petit doux" style={{ textAlign: 'center' }}>
+          Décodeur de secours : ce navigateur n'a pas le lecteur intégré, la lecture est
+          plus lente. Chrome à jour sur Android utilise le lecteur rapide.
+        </p>
       )}
 
       {saisieOuverte && (

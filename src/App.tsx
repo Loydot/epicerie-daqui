@@ -15,12 +15,16 @@ import Reglages from './pages/Reglages'
 import Verrou from './components/Verrou'
 import { amorceSiVide } from './db/seed'
 import { dejaOuvert } from './lib/verrou'
+import { surveilleLeReseau } from './lib/enrichissement'
 
 export default function App() {
   const [pret, setPret] = useState(false)
   const [ouvert, setOuvert] = useState(dejaOuvert)
 
   useEffect(() => { void amorceSiVide().finally(() => setPret(true)) }, [])
+
+  // Complete les fiches scannees hors ligne des que le reseau revient.
+  useEffect(() => (ouvert ? surveilleLeReseau() : undefined), [ouvert])
 
   if (!ouvert) return <Verrou surOuverture={() => setOuvert(true)} />
   if (!pret) return null

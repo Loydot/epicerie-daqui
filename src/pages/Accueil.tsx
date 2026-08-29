@@ -30,6 +30,7 @@ export default function Accueil() {
       unites: produits.reduce((s, p) => s + p.stock, 0),
       valeur: produits.reduce((s, p) => s + p.stock * (p.prixAchat ?? 0), 0),
       sansPrix: produits.filter((p) => p.prixVente == null).length,
+      aEnrichir: produits.filter((p) => p.aEnrichir === 1).length,
       equipements: equipements.length,
       relevesFaits: releves.size,
       relevesNonConformes: relevesJour.filter((r) => r.conforme === 0).length,
@@ -63,6 +64,15 @@ export default function Accueil() {
           <IconeAlerte />
           <span><strong>{resume.relevesNonConformes} température hors zone</strong> aujourd'hui — action corrective à tracer.</span>
         </Link>
+      )}
+      {resume.aEnrichir > 0 && (
+        <div className="bandeau">
+          <IconeBoite />
+          <span>
+            {resume.aEnrichir} fiche{resume.aEnrichir > 1 ? 's' : ''} scannée{resume.aEnrichir > 1 ? 's' : ''} sans réseau.
+            {' '}Le nom et la photo seront récupérés tout seuls dès que l'appareil retrouvera une connexion.
+          </span>
+        </div>
       )}
       {resume.proches.length > 0 && (
         <Link to="/dlc" className="bandeau alerte" style={{ textDecoration: 'none' }}>

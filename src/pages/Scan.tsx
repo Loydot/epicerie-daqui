@@ -31,6 +31,7 @@ const produitVierge = (ean: string): Produit => ({
   allergenes: '',
   nutriscore: '',
   source: 'manuel',
+  aEnrichir: 0,
   note: '',
   creeLe: new Date().toISOString(),
   majLe: new Date().toISOString(),
@@ -60,6 +61,9 @@ export default function Scan() {
         Object.assign(produit, fiche, { source: 'openfoodfacts' as const })
       } else {
         setHorsLigne(true)
+        // Sans réseau on n'abandonne pas la fiche : on la marque, elle sera
+        // complétée toute seule au retour de la connexion.
+        produit.aEnrichir = navigator.onLine ? 0 : 1
       }
       setEtat({ phase: 'fiche', produit, nouveau: true, quantite: 1 })
     } finally {
@@ -112,7 +116,11 @@ export default function Scan() {
           {horsLigne && nouveau && (
             <div className="bandeau alerte">
               <IconeBoite />
-              <span>Produit introuvable en ligne (ou pas de réseau) : remplis le nom à la main, il sera mémorisé pour les prochains scans.</span>
+              <span>
+                {navigator.onLine
+                  ? "Produit inconnu d'Open Food Facts : tape le nom, il sera mémorisé pour les prochains scans."
+                  : "Pas de réseau. Saisis le prix et la quantité, c'est tout : le nom, la marque et la photo seront récupérés automatiquement dès que le téléphone retrouvera une connexion."}
+              </span>
             </div>
           )}
           {codeSuspect && (

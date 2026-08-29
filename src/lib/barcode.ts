@@ -71,19 +71,30 @@ export async function demarreScan(
 
   if (natif) {
     const detecteur = new window.BarcodeDetector!({ formats: FORMATS_NATIFS })
-    const boucle = async () => {
+    // Analyser chaque image (60 par seconde) sature le telephone et fait saccader
+    // l'apercu video. Dix analyses par seconde suffisent largement : on lit le
+    // code des qu'il est cadre, et la video reste fluide.
+    const INTERVALLE = 100
+    let derniere = 0
+    let occupe = false
+
+    const boucle = async (horodatage: number) => {
       if (!vivant) return
-      try {
-        if (video.readyState >= 2) {
+      if (!occupe && horodatage - derniere >= INTERVALLE && video.readyState >= 2) {
+        derniere = horodatage
+        occupe = true
+        try {
           const codes = await detecteur.detect(video)
-          if (codes.length) surCode(codes[0].rawValue)
+          if (codes.length && vivant) surCode(codes[0].rawValue)
+        } catch {
+          // image illisible sur cette frame : on retente a la suivante
+        } finally {
+          occupe = false
         }
-      } catch {
-        // image illisible sur cette frame : on retente a la suivante
       }
-      if (vivant) requestAnimationFrame(() => void boucle())
+      if (vivant) requestAnimationFrame(boucle)
     }
-    void boucle()
+    requestAnimationFrame(boucle)
   } else {
     // Charge a la demande : sur Android le decodeur natif suffit et ce paquet
     // (plusieurs centaines de Ko) n'est jamais telecharge.
@@ -96,7 +107,9 @@ export async function demarreScan(
       BarcodeFormat.EAN_13, BarcodeFormat.EAN_8, BarcodeFormat.UPC_A,
       BarcodeFormat.UPC_E, BarcodeFormat.CODE_128, BarcodeFormat.ITF,
     ])
-    hints.set(DecodeHintType.TRY_HARDER, true)
+    // TRY_HARDER multiplie le temps d'analyse pour gagner sur des codes abimes ;
+    // en rayon les codes sont propres, la vitesse compte davantage.
+    hints.set(DecodeHintType.TRY_HARDER, false)
     const lecteur = new BrowserMultiFormatReader(hints, { delayBetweenScanAttempts: 120 })
     const controles = await lecteur.decodeFromVideoElement(video, (resultat) => {
       if (resultat && vivant) surCode(resultat.getText())
@@ -112,20 +125,33 @@ export async function demarreScan(
   }
 }
 
+/**
+ * Un seul contexte audio pour toute la session : les navigateurs en limitent le
+ * nombre (six sous Chrome), et en creer un par scan finissait par echouer au bout
+ * de quelques produits, en plus de couter cher.
+ */
+let contexteAudio: AudioContext | null = null
+
+function bip(): void {
+  contexteAudio ??= new AudioContext()
+  const ctx = contexteAudio
+  // Suspendu par le navigateur tant qu'il n'y a pas eu d'interaction : on relance.
+  if (ctx.state === 'suspended') void ctx.resume()
+  const osc = ctx.createOscillator()
+  const gain = ctx.createGain()
+  osc.frequency.value = 1320
+  gain.gain.setValueAtTime(0.12, ctx.currentTime)
+  gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.12)
+  osc.connect(gain).connect(ctx.destination)
+  osc.start()
+  osc.stop(ctx.currentTime + 0.12)
+}
+
 /** Bip court + vibration : confirme le scan sans avoir a regarder l'ecran. */
 export function retourScanReussi(): void {
   try {
     navigator.vibrate?.(60)
-    const ctx = new AudioContext()
-    const osc = ctx.createOscillator()
-    const gain = ctx.createGain()
-    osc.frequency.value = 1320
-    gain.gain.setValueAtTime(0.12, ctx.currentTime)
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.12)
-    osc.connect(gain).connect(ctx.destination)
-    osc.start()
-    osc.stop(ctx.currentTime + 0.12)
-    osc.onended = () => void ctx.close()
+    bip()
   } catch {
     // audio bloque par le navigateur : la vibration suffit
   }
