@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, uid } from '../db/db'
 import type { Equipement, Moment } from '../db/types'
@@ -6,6 +6,7 @@ import { aujourdhui, dateHeureFr, jourDe } from '../lib/format'
 import { ChoixOperateur, useOperateur } from '../lib/operateur'
 import { exporteTemperaturesCsv } from '../lib/export'
 import { IconeAlerte, IconeExport, IconeTemperature, IconeValide } from '../components/Icones'
+import GraphiqueTemperatures from '../components/GraphiqueTemperatures'
 
 /** Avant 15 h on considere que c'est le relevé du matin. */
 const momentParDefaut = (): Moment => (new Date().getHours() < 15 ? 'matin' : 'soir')
@@ -16,6 +17,7 @@ export default function Temperatures() {
   const [saisies, setSaisies] = useState<Record<string, string>>({})
   const [moments, setMoments] = useState<Record<string, Moment>>({})
   const [actions, setActions] = useState<Record<string, string>>({})
+  const [jours, setJours] = useState(30)
 
   const equipements = useLiveQuery(
     async () => (await db.equipements.toArray()).filter((e) => e.actif === 1).sort((a, b) => a.ordre - b.ordre),
@@ -23,6 +25,17 @@ export default function Temperatures() {
   ) ?? []
 
   const relevesJour = useLiveQuery(() => db.releves.where('jour').equals(jour).toArray(), [jour], []) ?? []
+
+  const debutPeriode = useMemo(() => {
+    const d = new Date()
+    d.setDate(d.getDate() - jours)
+    return d.toISOString()
+  }, [jours])
+
+  const relevesPeriode = useLiveQuery(
+    () => db.releves.where('date').aboveOrEqual(debutPeriode).toArray(),
+    [debutPeriode], [],
+  ) ?? []
   const historique = useLiveQuery(
     async () => (await db.releves.orderBy('date').reverse().limit(60).toArray()),
     [], [],
@@ -65,6 +78,17 @@ export default function Temperatures() {
         </div>
       )}
 
+      {equipements.length > 0 && (
+        <div className="onglets" role="group" aria-label="Période affichée sur les courbes">
+          {[7, 30, 90].map((n) => (
+            <button key={n} type="button" className={jours === n ? 'actif' : ''}
+              onClick={() => setJours(n)} aria-pressed={jours === n}>
+              {n} jours
+            </button>
+          ))}
+        </div>
+      )}
+
       {equipements.length === 0 && (
         <div className="carte vide">
           <IconeTemperature />
@@ -89,6 +113,11 @@ export default function Temperatures() {
                 <span className="etiquette ok"><IconeValide /> {dejaFaits.length} relevé{dejaFaits.length > 1 ? 's' : ''}</span>
               )}
             </div>
+
+            <GraphiqueTemperatures
+              equipement={eq}
+              releves={relevesPeriode.filter((r) => r.equipementId === eq.id)}
+            />
 
             {dejaFaits.length > 0 && (
               <div className="ligne petit doux" style={{ flexWrap: 'wrap' }}>

@@ -17,6 +17,15 @@
   --ombre: 0 1px 2px rgba(15, 25, 40, .06), 0 4px 14px rgba(15, 25, 40, .06);
   --r: 12px;
   --barre: 64px;
+
+  /* Couleurs du graphique : validees par scripts/validate_palette.js.
+     Rouge et vert cote a cote sont indistinguables en vision deutan, donc la
+     conformite ne passe jamais par ce couple : la position hors de la bande
+     porte l'information, la couleur ne fait que confirmer. */
+  --graphe-trait: #0f6fd4;
+  --graphe-alerte: #c8362f;
+  --graphe-zone: rgba(27, 138, 75, .10);
+  --graphe-grille: #d7dde5;
   color-scheme: light;
 }
 
@@ -37,6 +46,13 @@
     --danger: #f4796f;
     --danger-fond: #3a1917;
     --ombre: 0 1px 2px rgba(0, 0, 0, .3), 0 4px 14px rgba(0, 0, 0, .3);
+
+    /* Le theme sombre exige une bande de luminosite plus basse (L 0.48-0.67) :
+       les teintes claires de l'interface echouaient au controle. */
+    --graphe-trait: #3f8fdd;
+    --graphe-alerte: #e0645c;
+    --graphe-zone: rgba(78, 197, 132, .12);
+    --graphe-grille: #333d4b;
     color-scheme: dark;
   }
 }
@@ -288,4 +304,17 @@ input[type="number"] { font-variant-numeric: tabular-nums; }
   .nav, .entete, .fab, .noprint { display: none !important; }
   .contenu { padding: 0; }
   .carte { box-shadow: none; border-color: #ccc; break-inside: avoid; }
+}
+
+/* ---------- Graphique ---------- */
+/* La regle « svg { width: 20px } » vise les pictogrammes ; le graphique doit y echapper. */
+.graphe { position: relative; }
+.graphe > svg { width: 100%; height: auto; flex: none; }
+
+.bulle-graphe {
+  position: absolute; top: 4px; transform: translateX(-50%);
+  display: flex; flex-direction: column; gap: 1px;
+  padding: 6px 9px; border-radius: 8px;
+  background: var(--surface); border: 1px solid var(--bord);
+  box-shadow: var(--ombre); pointer-events: none; white-space: nowrap; z-index: 2;
 }
