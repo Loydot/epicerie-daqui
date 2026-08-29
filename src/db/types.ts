@@ -1,9 +1,28 @@
-/** Identifiant local : uuid v4, stable entre appareils une fois la synchro branchée. */
+/** Identifiant local : uuid v4, le même sur tous les appareils. */
 export type Id = string
+
+/**
+ * Champs communs à tout ce qui se synchronise. Ils sont optionnels côté types
+ * parce que les crochets de la base les renseignent à l'écriture : aucune page
+ * n'a à y penser, et un oubli ne peut donc pas empêcher une donnée de partir.
+ */
+export interface Synchronisable {
+  /** Dernière modification, ISO 8601. */
+  majLe?: string
+  /** 1 tant que la ligne n'a pas été envoyée au serveur. */
+  aSynchroniser?: number
+}
+
+/** Trace d'un effacement, pour qu'il se propage aux autres appareils. */
+export interface Suppression {
+  id: Id
+  table: string
+  le: string
+}
 
 export type Source = 'openfoodfacts' | 'manuel' | 'import'
 
-export interface Produit {
+export interface Produit extends Synchronisable {
   id: Id
   ean: string
   nom: string
@@ -35,7 +54,7 @@ export interface Produit {
 
 export type TypeEquipement = 'frigo' | 'congelateur' | 'vitrine' | 'reserve'
 
-export interface Equipement {
+export interface Equipement extends Synchronisable {
   id: Id
   nom: string
   type: TypeEquipement
@@ -47,7 +66,7 @@ export interface Equipement {
 
 export type Moment = 'matin' | 'soir'
 
-export interface Releve {
+export interface Releve extends Synchronisable {
   id: Id
   equipementId: Id
   /** Température en degres Celsius. */
@@ -62,7 +81,7 @@ export interface Releve {
   actionCorrective: string
 }
 
-export interface Reception {
+export interface Reception extends Synchronisable {
   id: Id
   date: string
   jour: string
@@ -80,7 +99,7 @@ export interface Reception {
 
 export type StatutLot = 'en_stock' | 'vendu' | 'retire'
 
-export interface Lot {
+export interface Lot extends Synchronisable {
   id: Id
   produitId: Id
   ean: string
@@ -96,7 +115,7 @@ export interface Lot {
 
 export type Frequence = 'quotidien' | 'hebdomadaire' | 'mensuel'
 
-export interface Tache {
+export interface Tache extends Synchronisable {
   id: Id
   nom: string
   zone: string
@@ -106,7 +125,7 @@ export interface Tache {
   ordre: number
 }
 
-export interface Nettoyage {
+export interface Nettoyage extends Synchronisable {
   id: Id
   tacheId: Id
   date: string
@@ -116,13 +135,13 @@ export interface Nettoyage {
   commentaire: string
 }
 
-export interface Operateur {
+export interface Operateur extends Synchronisable {
   id: Id
   nom: string
   actif: number
 }
 
-export interface Reglage {
+export interface Reglage extends Synchronisable {
   cle: string
   valeur: string
 }

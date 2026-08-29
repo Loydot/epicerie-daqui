@@ -12,21 +12,36 @@ import Dlc from './pages/Dlc'
 import Nettoyage from './pages/Nettoyage'
 import Registres from './pages/Registres'
 import Reglages from './pages/Reglages'
-import Verrou from './components/Verrou'
+import Connexion from './components/Connexion'
 import { amorceSiVide } from './db/seed'
-import { dejaOuvert } from './lib/verrou'
+import { supabase } from './lib/supabase'
 import { surveilleLeReseau } from './lib/enrichissement'
+import { demarreLaSynchronisation } from './lib/sync'
 
 export default function App() {
   const [pret, setPret] = useState(false)
-  const [ouvert, setOuvert] = useState(dejaOuvert)
+  const [connecte, setConnecte] = useState<boolean | null>(null)
 
   useEffect(() => { void amorceSiVide().finally(() => setPret(true)) }, [])
 
-  // Complete les fiches scannees hors ligne des que le reseau revient.
-  useEffect(() => (ouvert ? surveilleLeReseau() : undefined), [ouvert])
+  // La session est conservée sur l'appareil : au lancement suivant on entre
+  // directement, y compris sans réseau.
+  useEffect(() => {
+    void supabase.auth.getSession().then(({ data }) => setConnecte(Boolean(data.session)))
+    const { data: abonnement } = supabase.auth.onAuthStateChange((_evenement, session) => {
+      setConnecte(Boolean(session))
+    })
+    return () => abonnement.subscription.unsubscribe()
+  }, [])
 
-  if (!ouvert) return <Verrou surOuverture={() => setOuvert(true)} />
+  // Complète les fiches scannées hors ligne dès que le réseau revient.
+  useEffect(() => (connecte ? surveilleLeReseau() : undefined), [connecte])
+
+  // Échange permanent avec le serveur tant qu'on est connecté.
+  useEffect(() => (connecte ? demarreLaSynchronisation() : undefined), [connecte])
+
+  if (connecte === null) return null
+  if (!connecte) return <Connexion surConnexion={() => setConnecte(true)} />
   if (!pret) return null
 
   // HashRouter : l'appli marche telle quelle sur GitHub Pages et en ouverture directe.

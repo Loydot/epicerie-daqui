@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db, setReglage, uid } from '../db/db'
 import type { Equipement, Frequence, TypeEquipement } from '../db/types'
 import { exporteSauvegarde } from '../lib/export'
-import { oublieOuverture, verrouActif } from '../lib/verrou'
+import EtatSynchro from '../components/EtatSynchro'
 import { IconeCorbeille, IconeExport, IconePlus, IconeValide } from '../components/Icones'
 
 const TABLES = ['produits', 'equipements', 'releves', 'receptions', 'lots', 'taches', 'nettoyages', 'operateurs', 'reglages'] as const
@@ -210,18 +210,7 @@ export default function Reglages() {
           onChange={(e) => { const f = e.target.files?.[0]; if (f) void restaure(f); e.target.value = '' }} />
       </div>
 
-      {verrouActif && (
-        <div className="carte pile">
-          <h2>Code d'accès</h2>
-          <p className="petit doux">
-            Cet appareil est déverrouillé et ne redemande plus le code. Verrouille-le si
-            tu le prêtes ou si tu t'en sépares.
-          </p>
-          <button type="button" className="large" onClick={() => { oublieOuverture(); location.reload() }}>
-            Verrouiller cet appareil
-          </button>
-        </div>
-      )}
+      <EtatSynchro />
 
       <div className="carte pile">
         <h2 style={{ color: 'var(--danger)' }}>Zone dangereuse</h2>
