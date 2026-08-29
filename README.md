@@ -41,14 +41,21 @@ L'application est sur http://localhost:5173.
 - **Routage** : `HashRouter`, pour que le build fonctionne tel quel sur GitHub Pages
   sans configuration serveur.
 
+## En ligne
+
+L'application tourne sur **https://loydot.github.io/epicerie-daqui/**, publiée
+automatiquement par GitHub Actions à chaque `push` sur `main`.
+
+L'accès demande le compte du magasin : la base Supabase refuse toute requête non
+authentifiée, y compris avec la clé publique visible dans ce dépôt.
+
 ## La caméra exige HTTPS
 
 Les navigateurs n'ouvrent la caméra que sur une origine sûre : `localhost` ou HTTPS.
 Ouvrir `http://192.168.x.x:5173` depuis un téléphone affichera donc l'application,
 mais **le scan ne démarrera pas** — seule la saisie manuelle fonctionnera.
 
-Pour tester sur un vrai téléphone, il faut mettre l'application en ligne (GitHub Pages
-fournit HTTPS gratuitement). C'est l'étape suivante du projet.
+C'est pour ça que l'application est publiée : GitHub Pages fournit HTTPS gratuitement.
 
 ## Construire
 
