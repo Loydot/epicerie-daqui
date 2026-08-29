@@ -22,13 +22,19 @@ export interface Suppression {
 
 export type Source = 'openfoodfacts' | 'manuel' | 'import'
 
+/** Rayon du magasin. « negatif » et « positif » = froid négatif / positif. */
+export type Section = 'negatif' | 'positif' | 'menager' | 'epicerie' | 'nonclasse'
+
 export interface Produit extends Synchronisable {
   id: Id
   ean: string
   nom: string
   marque: string
   contenance: string
+  /** Catégorie descriptive venue d'Open Food Facts, ex. « Pâtes à tartiner ». */
   rayon: string
+  /** Rayon du magasin, qui structure l'inventaire et les étiquettes. */
+  section: Section
   photoUrl: string
   /** Prix d'achat HT, en euros. */
   prixAchat: number | null

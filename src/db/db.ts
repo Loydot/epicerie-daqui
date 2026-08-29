@@ -84,6 +84,17 @@ class HaccpDb extends Dexie {
       }
     })
 
+    // v4 : rayon du magasin, pour ranger l'inventaire.
+    this.version(4).stores({
+      produits: 'id, &ean, nom, marque, rayon, section, fournisseur, majLe, aEnrichir, aSynchroniser',
+    }).upgrade(async (tx) => {
+      const { devineSection } = await import('../lib/sections')
+      await tx.table('produits').toCollection().modify((p: Record<string, unknown>) => {
+        // Les fiches déjà saisies héritent d'une proposition, corrigeable ensuite.
+        p.section ??= devineSection(p.rayon as string, p.nom as string)
+      })
+    })
+
     this.brancheLesCrochets()
   }
 

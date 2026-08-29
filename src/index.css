@@ -306,6 +306,18 @@ input[type="number"] { font-variant-numeric: tabular-nums; }
   .carte { box-shadow: none; border-color: #ccc; break-inside: avoid; }
 }
 
+/* ---------- Rayons du catalogue ---------- */
+/* Collant : sur une liste de 300 references, savoir dans quel rayon on se trouve
+   compte plus que de gagner quelques pixels. */
+.entete-rayon {
+  position: sticky; top: 0; z-index: 1;
+  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+  padding: 10px 0 6px; margin-top: 8px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--bord);
+}
+.entete-rayon:first-child { margin-top: 0; }
+
 /* ---------- Graphique ---------- */
 /* La regle « svg { width: 20px } » vise les pictogrammes ; le graphique doit y echapper. */
 .graphe { position: relative; }

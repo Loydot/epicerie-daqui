@@ -5,6 +5,7 @@ import { db, uid } from '../db/db'
 import type { Produit } from '../db/types'
 import { dateFr, dateHeureFr, euro, joursRestants, marge, nombre } from '../lib/format'
 import { IconeBoite, IconeCorbeille, IconeExport, IconeValide } from '../components/Icones'
+import { SECTIONS } from '../lib/sections'
 
 /** Le moteur PDF pese plusieurs centaines de Ko : charge seulement au clic. */
 const chargePdf = () => import('../lib/pdf')
@@ -91,8 +92,11 @@ export default function ProduitDetail() {
         </div>
         <div className="deux-champs">
           <div>
-            <label htmlFor="d-rayon">Rayon</label>
-            <input id="d-rayon" value={p.rayon} onChange={(e) => maj({ rayon: e.target.value })} />
+            <label htmlFor="d-section">Rayon</label>
+            <select id="d-section" value={p.section}
+              onChange={(e) => maj({ section: e.target.value as Produit['section'] })}>
+              {SECTIONS.map((s) => <option key={s.cle} value={s.cle}>{s.nom}</option>)}
+            </select>
           </div>
           <div>
             <label htmlFor="d-four">Fournisseur</label>

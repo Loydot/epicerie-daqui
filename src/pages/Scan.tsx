@@ -6,6 +6,7 @@ import { db, uid } from '../db/db'
 import type { Produit } from '../db/types'
 import { chercheParEan } from '../lib/openfoodfacts'
 import { eanValide, euro, marge, nombre } from '../lib/format'
+import { devineSection, SECTIONS } from '../lib/sections'
 
 type Etat =
   | { phase: 'camera' }
@@ -21,6 +22,7 @@ const produitVierge = (ean: string): Produit => ({
   marque: '',
   contenance: '',
   rayon: '',
+  section: 'nonclasse',
   photoUrl: '',
   prixAchat: null,
   prixVente: null,
@@ -59,6 +61,9 @@ export default function Scan() {
       const produit = produitVierge(ean)
       if (fiche) {
         Object.assign(produit, fiche, { source: 'openfoodfacts' as const })
+        // Proposition de rayon d'après la catégorie : évite de classer des
+        // centaines de produits à la main. Corrigeable juste en dessous.
+        produit.section = devineSection(fiche.rayon, fiche.nom)
       } else {
         setHorsLigne(true)
         // Sans réseau on n'abandonne pas la fiche : on la marque, elle sera
@@ -107,7 +112,7 @@ export default function Scan() {
               : <div className="vignette" style={{ display: 'grid', placeItems: 'center' }}><IconeBoite /></div>}
             <div className="item-corps">
               <span className={`etiquette ${nouveau ? 'accent' : 'ok'}`}>
-                {nouveau ? 'Nouveau produit' : 'Deja au catalogue'}
+                {nouveau ? 'Nouveau produit' : 'Déjà au catalogue'}
               </span>
               <div className="petit doux mono" style={{ marginTop: 4 }}>{produit.ean}</div>
             </div>
@@ -126,7 +131,7 @@ export default function Scan() {
           {codeSuspect && (
             <div className="bandeau alerte">
               <IconeBoite />
-              <span>Ce code ne ressemble pas a un EAN standard. Vérifie-le avant d'enregistrer.</span>
+              <span>Ce code ne ressemble pas à un EAN standard. Vérifie-le avant d'enregistrer.</span>
             </div>
           )}
 
@@ -146,6 +151,14 @@ export default function Scan() {
               <input id="contenance" value={produit.contenance} placeholder="500 g"
                 onChange={(e) => majProduit({ contenance: e.target.value })} />
             </div>
+          </div>
+
+          <div>
+            <label htmlFor="section">Rayon</label>
+            <select id="section" value={produit.section}
+              onChange={(e) => majProduit({ section: e.target.value as Produit['section'] })}>
+              {SECTIONS.map((s) => <option key={s.cle} value={s.cle}>{s.nom}</option>)}
+            </select>
           </div>
 
           <div className="deux-champs">

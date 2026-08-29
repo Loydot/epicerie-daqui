@@ -3,6 +3,7 @@ import autoTable from 'jspdf-autotable'
 import JsBarcode from 'jsbarcode'
 import type { Lot, Nettoyage, Produit, Reception, Releve, Tache } from '../db/types'
 import { dateFr, dateHeureFr, euro, jourDe, marge, nombre } from './format'
+import { nomSection } from './sections'
 
 const MARGE = 14
 const GRIS: [number, number, number] = [92, 102, 117]
@@ -84,7 +85,8 @@ export function ficheProduitPdf(p: Produit, magasin: string): void {
       ['Désignation', p.nom],
       ['Marque', p.marque || '—'],
       ['Contenance', p.contenance || '—'],
-      ['Rayon', p.rayon || '—'],
+      ['Rayon', nomSection(p.section)],
+      ['Catégorie', p.rayon || '—'],
       ['Fournisseur', p.fournisseur || '—'],
       ['Prix d\'achat HT', euro(p.prixAchat)],
       ['Prix de vente TTC', euro(p.prixVente)],

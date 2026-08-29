@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/db'
 import { aujourdhui, jourDe, nombre } from '../lib/format'
 import { exporteCatalogueCsv } from '../lib/export'
+import { rangSection } from '../lib/sections'
 import { IconeExport, IconeRegistre } from '../components/Icones'
 
 /** Le moteur PDF pese plusieurs centaines de Ko : charge seulement au clic. */
@@ -63,7 +64,8 @@ export default function Registres() {
   const exporteEtiquettes = async () => {
     const produits = (await db.produits.toArray())
       .filter((p) => p.prixVente != null)
-      .sort((a, b) => (a.rayon || 'zzz').localeCompare(b.rayon || 'zzz') || a.nom.localeCompare(b.nom, 'fr'))
+      // Rangées comme le magasin : on colle les étiquettes rayon par rayon.
+      .sort((a, b) => rangSection(a.section) - rangSection(b.section) || a.nom.localeCompare(b.nom, 'fr'))
     if (produits.length === 0) { alert('Aucun produit avec un prix de vente renseigné.'); return }
     const { etiquettesPdf } = await chargePdf()
     etiquettesPdf(produits, magasin)
@@ -77,7 +79,7 @@ export default function Registres() {
         <h2>Registre HACCP</h2>
         <p className="petit doux">
           Un seul PDF regroupant les quatre registres d'autocontrôle sur la période choisie.
-          C'est le document a présenter en cas de contrôle.
+          C'est le document à présenter en cas de contrôle.
         </p>
 
         <div className="deux-champs">
@@ -101,7 +103,7 @@ export default function Registres() {
         )}
 
         <button type="button" className="principal haut large" onClick={genere} disabled={enCours || total === 0}>
-          <IconeRegistre /> {enCours ? 'Generation…' : 'Generer le registre PDF'}
+          <IconeRegistre /> {enCours ? 'Génération…' : 'Générer le registre PDF'}
         </button>
         {total === 0 && <p className="petit doux">Aucune saisie sur cette période.</p>}
       </div>
@@ -109,7 +111,7 @@ export default function Registres() {
       <div className="carte pile">
         <h2>Documents d'inventaire</h2>
         <button type="button" className="large" onClick={exporteEtiquettes}>
-          <IconeExport /> Planche d'etiquettes de rayon (PDF)
+          <IconeExport /> Planche d'étiquettes de rayon (PDF)
         </button>
         <button type="button" className="large" onClick={async () => exporteCatalogueCsv(await db.produits.toArray())}>
           <IconeExport /> Catalogue complet (CSV pour Excel)

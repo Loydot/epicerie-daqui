@@ -1,5 +1,6 @@
 import type { Lot, Produit, Reception, Releve } from '../db/types'
 import { dateFr, dateHeureFr, jourDe, marge } from './format'
+import { nomSection, rangSection } from './sections'
 
 /** Excel francais attend le point-virgule et la virgule decimale. */
 const SEP = ';'
@@ -30,14 +31,19 @@ const csv = (nom: string, entetes: string[], lignes: unknown[][]) =>
   telecharge(`${nom}-${jourDe()}.csv`, versCsv(entetes, lignes), 'text/csv;charset=utf-8')
 
 export function exporteCatalogueCsv(produits: Produit[]): void {
+  // Le fichier est toujours rangé par rayon puis alphabétiquement, même si
+  // l'écran affichait un autre tri : c'est l'ordre dans lequel on inventorie.
+  const ranges = [...produits].sort(
+    (a, b) => rangSection(a.section) - rangSection(b.section) || a.nom.localeCompare(b.nom, 'fr'),
+  )
   csv('catalogue', [
-    'Code-barres', 'Désignation', 'Marque', 'Contenance', 'Rayon', 'Fournisseur',
+    'Code-barres', 'Désignation', 'Marque', 'Contenance', 'Rayon', 'Catégorie', 'Fournisseur',
     'Prix achat HT', 'Prix vente TTC', 'TVA %', 'Marge EUR', 'Marge %',
     'Stock', 'Valeur stock', 'Allergènes', 'Nutri-Score', 'Modifié le',
-  ], produits.map((p) => {
+  ], ranges.map((p) => {
     const m = marge(p.prixAchat, p.prixVente, p.tva)
     return [
-      p.ean, p.nom, p.marque, p.contenance, p.rayon, p.fournisseur,
+      p.ean, p.nom, p.marque, p.contenance, nomSection(p.section), p.rayon, p.fournisseur,
       p.prixAchat, p.prixVente, p.tva,
       m ? Number(m.euros.toFixed(2)) : '', m ? Number(m.pourcent.toFixed(1)) : '',
       p.stock, Number((p.stock * (p.prixAchat ?? 0)).toFixed(2)),

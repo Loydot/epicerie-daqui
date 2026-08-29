@@ -18,6 +18,7 @@ create table if not exists produits (
   marque text not null default '',
   contenance text not null default '',
   rayon text not null default '',
+  section text not null default 'nonclasse',
   photo_url text not null default '',
   prix_achat numeric,
   prix_vente numeric,
@@ -130,6 +131,9 @@ create table if not exists reglages (
   maj_le timestamptz not null default now(),
   supprime boolean not null default false
 );
+
+-- Ajout après coup pour les bases déjà créées.
+alter table produits add column if not exists section text not null default 'nonclasse';
 
 -- Un même code-barres ne doit exister qu'une fois, sauf parmi les fiches effacées.
 create unique index if not exists produits_ean_unique
