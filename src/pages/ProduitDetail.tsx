@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, uid } from '../db/db'
 import type { Produit } from '../db/types'
-import { dateFr, dateHeureFr, euro, joursRestants, marge } from '../lib/format'
+import { dateFr, dateHeureFr, euro, joursRestants, marge, nombre } from '../lib/format'
 import { IconeBoite, IconeCorbeille, IconeExport, IconeValide } from '../components/Icones'
 
 /** Le moteur PDF pese plusieurs centaines de Ko : charge seulement au clic. */
@@ -133,7 +133,7 @@ export default function ProduitDetail() {
         {m && (
           <div className="bandeau">
             <IconeValide />
-            <span>Marge : <strong>{euro(m.euros)}</strong> par unité ({m.pourcent.toFixed(1)} %) · Stock valorisé {euro(p.stock * (p.prixAchat ?? 0))}</span>
+            <span>Marge : <strong>{euro(m.euros)}</strong> par unité ({nombre(m.pourcent, 1)} %) · Stock valorisé {euro(p.stock * (p.prixAchat ?? 0))}</span>
           </div>
         )}
 

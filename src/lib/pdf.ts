@@ -2,7 +2,7 @@ import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import JsBarcode from 'jsbarcode'
 import type { Lot, Nettoyage, Produit, Reception, Releve, Tache } from '../db/types'
-import { dateFr, dateHeureFr, euro, jourDe, marge } from './format'
+import { dateFr, dateHeureFr, euro, jourDe, marge, nombre } from './format'
 
 const MARGE = 14
 const GRIS: [number, number, number] = [92, 102, 117]
@@ -89,7 +89,7 @@ export function ficheProduitPdf(p: Produit, magasin: string): void {
       ['Prix d\'achat HT', euro(p.prixAchat)],
       ['Prix de vente TTC', euro(p.prixVente)],
       ['TVA', `${p.tva} %`],
-      ['Marge unitaire', m ? `${euro(m.euros)}  (${m.pourcent.toFixed(1)} %)` : '—'],
+      ['Marge unitaire', m ? `${euro(m.euros)}  (${nombre(m.pourcent, 1)} %)` : '—'],
       ['Stock', `${p.stock} unité(s)`],
       ['Valeur du stock', euro(p.stock * (p.prixAchat ?? 0))],
       ['Allergènes', p.allergenes || 'Non renseignés'],

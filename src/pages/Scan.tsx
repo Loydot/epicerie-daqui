@@ -5,7 +5,7 @@ import { IconeBoite, IconeValide } from '../components/Icones'
 import { db, uid } from '../db/db'
 import type { Produit } from '../db/types'
 import { chercheParEan } from '../lib/openfoodfacts'
-import { eanValide, euro, marge } from '../lib/format'
+import { eanValide, euro, marge, nombre } from '../lib/format'
 
 type Etat =
   | { phase: 'camera' }
@@ -158,7 +158,7 @@ export default function Scan() {
           {m && (
             <div className="bandeau">
               <IconeValide />
-              <span>Marge : <strong>{euro(m.euros)}</strong> par unité, soit <strong>{m.pourcent.toFixed(1)} %</strong></span>
+              <span>Marge : <strong>{euro(m.euros)}</strong> par unité, soit <strong>{nombre(m.pourcent, 1)} %</strong></span>
             </div>
           )}
 

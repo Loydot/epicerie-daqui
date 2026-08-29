@@ -1,32 +1,59 @@
-# React + TypeScript + Vite
+# Épicerie — Scan & HACCP
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Application web installable (PWA) pour une épicerie : inventaire par code-barres,
+prix et marges, et les quatre registres HACCP d'autocontrôle.
 
-Currently, two official plugins are available:
+Même URL sur le téléphone (scan en rayon) et sur le PC (saisie au clavier, impression).
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Ce qu'elle fait
 
-## React Compiler
+| Module | Rôle |
+| --- | --- |
+| Scanner | Lit l'EAN, récupère nom / marque / photo sur Open Food Facts, saisie du prix et de la quantité |
+| Catalogue | Recherche, tri, valeur du stock, export CSV pour Excel |
+| Fiche produit | Prix d'achat, prix de vente, marge calculée, lots, PDF, étiquette de rayon |
+| Températures | Relevés matin / soir par équipement, alerte hors zone, action corrective obligatoire |
+| Réceptions | Contrôle de chaque livraison : température, emballages, DLC, acceptation ou refus motivé |
+| Dates limites | Suivi des lots, alerte à J-3, traçabilité des retraits de la vente |
+| Plan de nettoyage | Tâches quotidiennes, hebdomadaires, mensuelles, cochées et horodatées |
+| Registres | Un PDF unique sur la période choisie, à présenter en cas de contrôle |
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Démarrer en développement
 
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm install
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+```bash
+npm run dev
+```
+
+L'application est sur http://localhost:5173.
+
+## Points techniques
+
+- **Stockage local** : IndexedDB via Dexie (`src/db/`). Tout fonctionne hors-ligne ;
+  la synchronisation Supabase viendra par-dessus, sans changer le modèle de données.
+- **Scan** : `BarcodeDetector` natif quand le navigateur le fournit (Android), sinon
+  ZXing chargé à la demande. Le paquet ZXing n'est donc jamais téléchargé sur Android.
+- **PDF** : jsPDF, également chargé à la demande — il pèse à lui seul plus que le reste
+  de l'application.
+- **Routage** : `HashRouter`, pour que le build fonctionne tel quel sur GitHub Pages
+  sans configuration serveur.
+
+## La caméra exige HTTPS
+
+Les navigateurs n'ouvrent la caméra que sur une origine sûre : `localhost` ou HTTPS.
+Ouvrir `http://192.168.x.x:5173` depuis un téléphone affichera donc l'application,
+mais **le scan ne démarrera pas** — seule la saisie manuelle fonctionnera.
+
+Pour tester sur un vrai téléphone, il faut mettre l'application en ligne (GitHub Pages
+fournit HTTPS gratuitement). C'est l'étape suivante du projet.
+
+## Construire
+
+```bash
+npm run build
+```
+
+Le résultat est dans `dist/`, prêt à être publié tel quel.
