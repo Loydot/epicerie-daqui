@@ -45,7 +45,7 @@ export type Moment = 'matin' | 'soir'
 export interface Releve {
   id: Id
   equipementId: Id
-  /** Temperature en degres Celsius. */
+  /** Température en degres Celsius. */
   temp: number
   /** ISO 8601 complet, sert aussi de cle de tri. */
   date: string
@@ -63,7 +63,7 @@ export interface Reception {
   jour: string
   fournisseur: string
   bonLivraison: string
-  /** Temperature relevee a coeur ou sur le produit, en degres Celsius. */
+  /** Température relevée a coeur ou sur le produit, en degres Celsius. */
   tempProduit: number | null
   emballageOk: number
   dlcOk: number
@@ -105,7 +105,7 @@ export interface Nettoyage {
   id: Id
   tacheId: Id
   date: string
-  /** Cle de periode : le jour, la semaine ISO ou le mois selon la frequence. */
+  /** Cle de période : le jour, la semaine ISO ou le mois selon la frequence. */
   periode: string
   operateur: string
   commentaire: string

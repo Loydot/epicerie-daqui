@@ -32,12 +32,12 @@ export default function Reglages() {
   const majEquipement = (id: string, champs: Partial<Equipement>) => void db.equipements.update(id, champs)
 
   const ajouteEquipement = () => void db.equipements.add({
-    id: uid(), nom: 'Nouvel equipement', type: 'frigo',
+    id: uid(), nom: 'Nouvel équipement', type: 'frigo',
     tempMin: 0, tempMax: 4, actif: 1, ordre: equipements.length + 1,
   })
 
   const ajouteTache = () => void db.taches.add({
-    id: uid(), nom: 'Nouvelle tache', zone: '', frequence: 'quotidien',
+    id: uid(), nom: 'Nouvelle tâche', zone: '', frequence: 'quotidien',
     produitUtilise: '', actif: 1, ordre: taches.length + 1,
   })
 
@@ -52,7 +52,7 @@ export default function Reglages() {
       const contenu = JSON.parse(await fichier.text())
       const donnees = contenu?.donnees
       if (!donnees || typeof donnees !== 'object') throw new Error('format')
-      if (!confirm('La restauration remplace toutes les donnees actuelles. Continuer ?')) return
+      if (!confirm('La restauration remplace toutes les données actuelles. Continuer ?')) return
       await db.transaction('rw', TABLES.map((t) => db.table(t)), async () => {
         for (const t of TABLES) {
           if (!Array.isArray(donnees[t])) continue
@@ -60,15 +60,15 @@ export default function Reglages() {
           await db.table(t).bulkAdd(donnees[t])
         }
       })
-      setMessage('Sauvegarde restauree.')
+      setMessage('Sauvegarde restaurée.')
     } catch {
       setMessage("Fichier illisible : ce n'est pas une sauvegarde de l'application.")
     }
   }
 
   const videTout = async () => {
-    if (!confirm('Effacer TOUTES les donnees de cet appareil ? Cette action est definitive.')) return
-    if (!confirm('Derniere confirmation : catalogue, releves et registres seront perdus.')) return
+    if (!confirm('Effacer TOUTES les données de cet appareil ? Cette action est définitive.')) return
+    if (!confirm('Dernière confirmation : catalogue, relevés et registres seront perdus.')) return
     await db.transaction('rw', TABLES.map((t) => db.table(t)), async () => {
       for (const t of TABLES) await db.table(t).clear()
     })
@@ -80,13 +80,13 @@ export default function Reglages() {
       {message && <div className="bandeau"><IconeValide /><span>{message}</span></div>}
 
       <div className="carte pile">
-        <h2>Etablissement</h2>
+        <h2>Établissement</h2>
         <div>
           <label htmlFor="magasin">Nom du magasin</label>
-          <input id="magasin" value={magasin} placeholder="Ex. Epicerie du Marche"
+          <input id="magasin" value={magasin} placeholder="Ex. Épicerie du Marché"
             onChange={(e) => void setReglage('magasin', e.target.value)} />
         </div>
-        <p className="petit doux">Ce nom apparait en tete de tous les registres et documents PDF.</p>
+        <p className="petit doux">Ce nom apparaît en tête de tous les registres et documents PDF.</p>
       </div>
 
       <div className="carte pile">
@@ -94,11 +94,11 @@ export default function Reglages() {
           <h2>Personnes qui saisissent</h2>
         </div>
         <p className="petit doux">
-          Un registre HACCP doit indiquer qui a fait le releve. Ajoute les prenoms ici,
-          ils apparaitront dans un menu deroulant au moment de la saisie.
+          Un registre HACCP doit indiquer qui a fait le relevé. Ajoute les prénoms ici,
+          ils apparaîtront dans un menu déroulant au moment de la saisie.
         </p>
         <div className="ligne">
-          <input className="champ" placeholder="Prenom" value={nouvelOperateur}
+          <input className="champ" placeholder="Prénom" value={nouvelOperateur}
             onChange={(e) => setNouvelOperateur(e.target.value)} />
           <button type="button" className="principal" disabled={!nouvelOperateur.trim()}
             onClick={() => {
@@ -125,7 +125,7 @@ export default function Reglages() {
 
       <div className="carte pile">
         <div className="ligne-espace">
-          <h2>Equipements a surveiller</h2>
+          <h2>Équipements à surveiller</h2>
           <button type="button" className="discret" onClick={ajouteEquipement}><IconePlus /> Ajouter</button>
         </div>
         {equipements.map((e) => (
@@ -133,7 +133,7 @@ export default function Reglages() {
             <div className="ligne">
               <input className="champ" value={e.nom} onChange={(ev) => majEquipement(e.id, { nom: ev.target.value })} />
               <button type="button" className="discret" aria-label="Supprimer"
-                onClick={() => { if (confirm(`Supprimer "${e.nom}" ? Les releves passes sont conserves.`)) void db.equipements.delete(e.id) }}>
+                onClick={() => { if (confirm(`Supprimer "${e.nom}" ? Les relevés passes sont conservés.`)) void db.equipements.delete(e.id) }}>
                 <IconeCorbeille />
               </button>
             </div>
@@ -172,13 +172,13 @@ export default function Reglages() {
             <div className="ligne">
               <input className="champ" value={t.nom} onChange={(e) => void db.taches.update(t.id, { nom: e.target.value })} />
               <button type="button" className="discret" aria-label="Supprimer"
-                onClick={() => { if (confirm(`Supprimer la tache "${t.nom}" ?`)) void db.taches.delete(t.id) }}>
+                onClick={() => { if (confirm(`Supprimer la tâche "${t.nom}" ?`)) void db.taches.delete(t.id) }}>
                 <IconeCorbeille />
               </button>
             </div>
             <div className="deux-champs">
               <div>
-                <label htmlFor={`fr-${t.id}`}>Frequence</label>
+                <label htmlFor={`fr-${t.id}`}>Fréquence</label>
                 <select id={`fr-${t.id}`} value={t.frequence}
                   onChange={(e) => void db.taches.update(t.id, { frequence: e.target.value as Frequence })}>
                   {FREQUENCES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
@@ -196,7 +196,7 @@ export default function Reglages() {
       <div className="carte pile">
         <h2>Sauvegarde</h2>
         <p className="petit doux">
-          Tant que la synchro en ligne n'est pas branchee, les donnees vivent uniquement dans ce navigateur.
+          Tant que la synchro en ligne n'est pas branchée, les données vivent uniquement dans ce navigateur.
           Exporte une sauvegarde de temps en temps.
         </p>
         <button type="button" className="large" onClick={sauvegarde}>
@@ -212,7 +212,7 @@ export default function Reglages() {
       <div className="carte pile">
         <h2 style={{ color: 'var(--danger)' }}>Zone dangereuse</h2>
         <button type="button" className="destructif large" onClick={videTout}>
-          <IconeCorbeille /> Effacer toutes les donnees de cet appareil
+          <IconeCorbeille /> Effacer toutes les données de cet appareil
         </button>
       </div>
     </div>

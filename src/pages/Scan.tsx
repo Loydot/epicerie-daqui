@@ -112,18 +112,18 @@ export default function Scan() {
           {horsLigne && nouveau && (
             <div className="bandeau alerte">
               <IconeBoite />
-              <span>Produit introuvable en ligne (ou pas de reseau) : remplis le nom a la main, il sera memorise pour les prochains scans.</span>
+              <span>Produit introuvable en ligne (ou pas de réseau) : remplis le nom à la main, il sera mémorisé pour les prochains scans.</span>
             </div>
           )}
           {codeSuspect && (
             <div className="bandeau alerte">
               <IconeBoite />
-              <span>Ce code ne ressemble pas a un EAN standard. Verifie-le avant d'enregistrer.</span>
+              <span>Ce code ne ressemble pas a un EAN standard. Vérifie-le avant d'enregistrer.</span>
             </div>
           )}
 
           <div>
-            <label htmlFor="nom">Designation</label>
+            <label htmlFor="nom">Désignation</label>
             <input id="nom" value={produit.nom} autoFocus={!produit.nom}
               onChange={(e) => majProduit({ nom: e.target.value })} placeholder="Nom du produit" />
           </div>
@@ -158,12 +158,12 @@ export default function Scan() {
           {m && (
             <div className="bandeau">
               <IconeValide />
-              <span>Marge : <strong>{euro(m.euros)}</strong> par unite, soit <strong>{m.pourcent.toFixed(1)} %</strong></span>
+              <span>Marge : <strong>{euro(m.euros)}</strong> par unité, soit <strong>{m.pourcent.toFixed(1)} %</strong></span>
             </div>
           )}
 
           <div>
-            <label htmlFor="qte">Quantite comptee{!nouveau && ` (stock actuel : ${produit.stock})`}</label>
+            <label htmlFor="qte">Quantité comptée{!nouveau && ` (stock actuel : ${produit.stock})`}</label>
             <div className="ligne">
               <button type="button" onClick={() => setEtat((e) => e.phase === 'fiche' ? { ...e, quantite: Math.max(1, e.quantite - 1) } : e)}>−</button>
               <input id="qte" className="champ mono" type="number" inputMode="numeric" min="1" value={quantite}
@@ -199,7 +199,7 @@ export default function Scan() {
       {historique.length > 0 && (
         <div className="carte">
           <div className="ligne-espace">
-            <h2>Scannes dans cette session</h2>
+            <h2>Scannés dans cette session</h2>
             <span className="etiquette">{historique.length}</span>
           </div>
           <div className="liste" style={{ marginTop: 8 }}>

@@ -71,9 +71,9 @@ export default function Catalogue() {
             {rayons.map((r) => <option key={r} value={r}>{r}</option>)}
           </select>
           <select value={tri} onChange={(e) => setTri(e.target.value as Tri)} aria-label="Tri">
-            <option value="recent">Modifies recemment</option>
-            <option value="nom">Ordre alphabetique</option>
-            <option value="stock">Stock decroissant</option>
+            <option value="recent">Modifiés récemment</option>
+            <option value="nom">Ordre alphabétique</option>
+            <option value="stock">Stock décroissant</option>
             <option value="valeur">Valeur de stock</option>
           </select>
         </div>
@@ -81,11 +81,11 @@ export default function Catalogue() {
 
       <div className="grille">
         <div className="carte">
-          <div className="petit doux">References</div>
+          <div className="petit doux">Références</div>
           <div className="gros-chiffre">{nombre(total.references)}</div>
         </div>
         <div className="carte">
-          <div className="petit doux">Unites en stock</div>
+          <div className="petit doux">Unités en stock</div>
           <div className="gros-chiffre">{nombre(total.unites)}</div>
         </div>
         <div className="carte">
@@ -102,7 +102,7 @@ export default function Catalogue() {
           </button>
         </div>
         {liste.length === 0 ? (
-          <div className="vide"><IconeRecherche /><p>Aucun resultat</p></div>
+          <div className="vide"><IconeRecherche /><p>Aucun résultat</p></div>
         ) : (
           <div className="liste">
             {liste.map((p) => (

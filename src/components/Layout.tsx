@@ -11,11 +11,11 @@ const ONGLETS = [
   { to: '/', libelle: 'Accueil', Icone: IconeAccueil, exact: true },
   { to: '/scan', libelle: 'Scanner', Icone: IconeScan },
   { to: '/catalogue', libelle: 'Catalogue', Icone: IconeCatalogue },
-  { to: '/controles', libelle: 'Controles', Icone: IconeTemperature, alertes: true },
+  { to: '/controles', libelle: 'Contrôles', Icone: IconeTemperature, alertes: true },
   { to: '/registres', libelle: 'Registres', Icone: IconeRegistre },
 ]
 
-/** Nombre de points rouges a afficher sur l'onglet Controles. */
+/** Nombre de points rouges a afficher sur l'onglet Contrôles. */
 function useNombreAlertes(): number {
   return useLiveQuery(async () => {
     const jour = aujourdhui()
@@ -36,13 +36,13 @@ const TITRES: Array<[RegExp, string]> = [
   [/^\/scan/, 'Scanner'],
   [/^\/catalogue$/, 'Catalogue'],
   [/^\/produit\//, 'Fiche produit'],
-  [/^\/controles$/, 'Controles HACCP'],
-  [/^\/temperatures/, 'Temperatures'],
-  [/^\/receptions/, 'Receptions'],
+  [/^\/controles$/, 'Contrôles HACCP'],
+  [/^\/temperatures/, 'Températures'],
+  [/^\/receptions/, 'Réceptions'],
   [/^\/dlc/, 'Dates limites'],
   [/^\/nettoyage/, 'Plan de nettoyage'],
   [/^\/registres/, 'Registres'],
-  [/^\/reglages/, 'Reglages'],
+  [/^\/reglages/, 'Réglages'],
 ]
 
 export default function Layout() {
@@ -50,7 +50,7 @@ export default function Layout() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
 
-  const titre = TITRES.find(([re]) => re.test(pathname))?.[1] ?? 'Epicerie'
+  const titre = TITRES.find(([re]) => re.test(pathname))?.[1] ?? 'Épicerie'
   const racine = ONGLETS.some((o) => (o.exact ? o.to === pathname : pathname.startsWith(o.to)))
 
   return (
@@ -73,7 +73,7 @@ export default function Layout() {
             </button>
           )}
           <h1>{titre}</h1>
-          <NavLink to="/reglages" className="discret bouton" aria-label="Reglages">
+          <NavLink to="/reglages" className="discret bouton" aria-label="Réglages">
             <IconeReglages />
           </NavLink>
         </header>

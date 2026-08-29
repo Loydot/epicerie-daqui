@@ -8,7 +8,7 @@ const MARGE = 14
 const GRIS: [number, number, number] = [92, 102, 117]
 const ACCENT: [number, number, number] = [15, 111, 212]
 
-/** En-tete commun a tous les documents : identifie l'etablissement pour un controle. */
+/** En-tete commun a tous les documents : identifie l'etablissement pour un contrôle. */
 function entete(doc: jsPDF, titre: string, magasin: string, sousTitre = ''): number {
   doc.setFillColor(...ACCENT)
   doc.rect(0, 0, doc.internal.pageSize.getWidth(), 3, 'F')
@@ -17,12 +17,12 @@ function entete(doc: jsPDF, titre: string, magasin: string, sousTitre = ''): num
   doc.text(titre, MARGE, 20)
 
   doc.setFont('helvetica', 'normal').setFontSize(10).setTextColor(...GRIS)
-  doc.text(magasin || 'Etablissement', MARGE, 27)
+  doc.text(magasin || 'Établissement', MARGE, 27)
   if (sousTitre) doc.text(sousTitre, MARGE, 33)
 
   doc.setFontSize(8)
   doc.text(
-    `Edite le ${dateHeureFr(new Date().toISOString())}`,
+    `Édité le ${dateHeureFr(new Date().toISOString())}`,
     doc.internal.pageSize.getWidth() - MARGE, 20, { align: 'right' },
   )
   return sousTitre ? 40 : 34
@@ -77,11 +77,11 @@ export function ficheProduitPdf(p: Produit, magasin: string): void {
   autoTable(doc, {
     ...styleTable,
     startY: y + 16,
-    head: [['Caracteristique', 'Valeur']],
+    head: [['Caractéristique', 'Valeur']],
     columnStyles: { 0: { cellWidth: 55, fontStyle: 'bold' } },
     body: [
       ['Code-barres', p.ean],
-      ['Designation', p.nom],
+      ['Désignation', p.nom],
       ['Marque', p.marque || '—'],
       ['Contenance', p.contenance || '—'],
       ['Rayon', p.rayon || '—'],
@@ -90,12 +90,12 @@ export function ficheProduitPdf(p: Produit, magasin: string): void {
       ['Prix de vente TTC', euro(p.prixVente)],
       ['TVA', `${p.tva} %`],
       ['Marge unitaire', m ? `${euro(m.euros)}  (${m.pourcent.toFixed(1)} %)` : '—'],
-      ['Stock', `${p.stock} unite(s)`],
+      ['Stock', `${p.stock} unité(s)`],
       ['Valeur du stock', euro(p.stock * (p.prixAchat ?? 0))],
-      ['Allergenes', p.allergenes || 'Non renseignes'],
+      ['Allergènes', p.allergenes || 'Non renseignés'],
       ['Nutri-Score', p.nutriscore || '—'],
-      ['Fiche creee le', dateHeureFr(p.creeLe)],
-      ['Derniere modification', dateHeureFr(p.majLe)],
+      ['Fiche créée le', dateHeureFr(p.creeLe)],
+      ['Dernière modification', dateHeureFr(p.majLe)],
     ],
   })
 
@@ -111,9 +111,9 @@ export function ficheProduitPdf(p: Produit, magasin: string): void {
   doc.save(`fiche-${p.ean || p.id}.pdf`)
 }
 
-/* ------------------------- Etiquettes de rayon ------------------------- */
+/* ------------------------- Étiquettes de rayon ------------------------- */
 
-/** Planche A4 de 3 x 8 etiquettes prix, a decouper. */
+/** Planche A4 de 3 x 8 étiquettes prix, a découper. */
 export function etiquettesPdf(produits: Produit[], magasin: string): void {
   const doc = new jsPDF()
   const COLS = 3
@@ -168,7 +168,7 @@ export interface DonneesRegistre {
 
 export function registrePdf(d: DonneesRegistre): void {
   const doc = new jsPDF()
-  const periode = `Periode du ${dateFr(d.du)} au ${dateFr(d.au)}`
+  const periode = `Période du ${dateFr(d.du)} au ${dateFr(d.au)}`
   const y = entete(doc, 'Registre HACCP', d.magasin, periode)
 
   const section = (titre: string, tete: string[], corps: unknown[][], premiere = false) => {
@@ -181,33 +181,33 @@ export function registrePdf(d: DonneesRegistre): void {
       ...styleTable,
       startY: depart,
       head: [tete],
-      body: corps.length ? (corps as string[][]) : [[{ content: 'Aucun enregistrement sur la periode', colSpan: tete.length, styles: { textColor: GRIS, halign: 'center' } } as never]],
+      body: corps.length ? (corps as string[][]) : [[{ content: 'Aucun enregistrement sur la période', colSpan: tete.length, styles: { textColor: GRIS, halign: 'center' } } as never]],
     })
   }
 
-  section('1. Releves de temperature', ['Date', 'Equipement', 'Moment', 'Temp.', 'Conforme', 'Action corrective', 'Par'],
+  section('1. Relevés de température', ['Date', 'Équipement', 'Moment', 'Temp.', 'Conforme', 'Action corrective', 'Par'],
     d.releves.map((r) => [
       dateHeureFr(r.date), d.nomEquipement(r.equipementId), r.moment,
       `${r.temp} °C`, r.conforme ? 'Oui' : 'NON', r.actionCorrective || '—', r.operateur || '—',
     ]), true)
 
-  section('2. Controles a reception', ['Date', 'Fournisseur', 'BL', 'Temp.', 'Emball.', 'DLC', 'Decision', 'Par'],
+  section('2. Contrôles à réception', ['Date', 'Fournisseur', 'BL', 'Temp.', 'Emball.', 'DLC', 'Decision', 'Par'],
     d.receptions.map((r) => [
       dateHeureFr(r.date), r.fournisseur, r.bonLivraison || '—',
       r.tempProduit == null ? '—' : `${r.tempProduit} °C`,
       r.emballageOk ? 'OK' : 'NON', r.dlcOk ? 'OK' : 'NON',
-      r.conforme ? 'Acceptee' : `Refusee : ${r.motif || 'non precise'}`, r.operateur || '—',
+      r.conforme ? 'Acceptée' : `Refusée : ${r.motif || 'non precise'}`, r.operateur || '—',
     ]))
 
-  section('3. Suivi des dates limites et retraits', ['Produit', 'Lot', 'DLC', 'Qte', 'Statut', 'Retire le', 'Par'],
+  section('3. Suivi des dates limites et retraits', ['Produit', 'Lot', 'DLC', 'Qte', 'Statut', 'Retiré le', 'Par'],
     d.lots.map((l) => [
       d.nomProduit(l.produitId), l.numeroLot || '—', dateFr(l.dlc), String(l.quantite),
-      l.statut === 'retire' ? 'Retire de la vente' : l.statut === 'vendu' ? 'Vendu' : 'En stock',
+      l.statut === 'retire' ? 'Retiré de la vente' : l.statut === 'vendu' ? 'Vendu' : 'En stock',
       l.retireLe ? dateHeureFr(l.retireLe) : '—', l.operateur || '—',
     ]))
 
-  const nomTache = (id: string) => d.taches.find((t) => t.id === id)?.nom ?? 'Tache supprimee'
-  section('4. Plan de nettoyage et de desinfection', ['Date', 'Tache', 'Periode', 'Commentaire', 'Par'],
+  const nomTache = (id: string) => d.taches.find((t) => t.id === id)?.nom ?? 'Tâche supprimée'
+  section('4. Plan de nettoyage et de désinfection', ['Date', 'Tâche', 'Période', 'Commentaire', 'Par'],
     d.nettoyages.map((n) => [
       dateHeureFr(n.date), nomTache(n.tacheId), n.periode, n.commentaire || '—', n.operateur || '—',
     ]))
@@ -216,8 +216,8 @@ export function registrePdf(d: DonneesRegistre): void {
   doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(...GRIS)
   doc.text(
     doc.splitTextToSize(
-      "Document genere automatiquement a partir des saisies horodatees de l'application. "
-      + "Il constitue le support des autocontroles prevus par le Plan de Maitrise Sanitaire.",
+      "Document généré automatiquement à partir des saisies horodatées de l'application. "
+      + "Il constitue le support des autocontroles prévus par le Plan de Maîtrise Sanitaire.",
       182,
     ),
     MARGE, fin,

@@ -3,7 +3,7 @@ import { db, setReglage } from '../db/db'
 
 /**
  * Qui saisit. Un registre HACCP doit etre nominatif : plutot que d'imposer des
- * comptes, on memorise le prenom choisi et on l'estampille sur chaque saisie.
+ * comptes, on mémorisé le prenom choisi et on l'estampille sur chaque saisie.
  */
 export function useOperateur(): [string, (nom: string) => void, string[]] {
   const courant = useLiveQuery(async () => (await db.reglages.get('operateur'))?.valeur ?? '', [], '') ?? ''
@@ -24,7 +24,7 @@ export function ChoixOperateur({ valeur, surChangement, options }: Props) {
   if (options.length === 0) return null
   return (
     <div>
-      <label htmlFor="operateur">Releve effectue par</label>
+      <label htmlFor="operateur">Relevé effectué par</label>
       <select id="operateur" value={valeur} onChange={(e) => surChangement(e.target.value)}>
         <option value="">— choisir —</option>
         {options.map((o) => <option key={o} value={o}>{o}</option>)}

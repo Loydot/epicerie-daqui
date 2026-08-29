@@ -53,21 +53,21 @@ export default function Accueil() {
         <Link to="/dlc" className="bandeau danger" style={{ textDecoration: 'none' }}>
           <IconeAlerte />
           <span>
-            <strong>{resume.perimes.length} lot{resume.perimes.length > 1 ? 's' : ''} depasse{resume.perimes.length > 1 ? 's' : ''}</strong>
-            {' '}— a retirer de la vente immediatement.
+            <strong>{resume.perimes.length} lot{resume.perimes.length > 1 ? 's' : ''} dépassé{resume.perimes.length > 1 ? 's' : ''}</strong>
+            {' '}— à retirer de la vente immédiatement.
           </span>
         </Link>
       )}
       {resume.relevesNonConformes > 0 && (
         <Link to="/temperatures" className="bandeau danger" style={{ textDecoration: 'none' }}>
           <IconeAlerte />
-          <span><strong>{resume.relevesNonConformes} temperature hors zone</strong> aujourd'hui — action corrective a tracer.</span>
+          <span><strong>{resume.relevesNonConformes} température hors zone</strong> aujourd'hui — action corrective à tracer.</span>
         </Link>
       )}
       {resume.proches.length > 0 && (
         <Link to="/dlc" className="bandeau alerte" style={{ textDecoration: 'none' }}>
           <IconeCalendrier />
-          <span>{resume.proches.length} lot{resume.proches.length > 1 ? 's arrivent' : ' arrive'} a echeance sous 3 jours.</span>
+          <span>{resume.proches.length} lot{resume.proches.length > 1 ? 's arrivent' : ' arrive'} à échéance sous 3 jours.</span>
         </Link>
       )}
 
@@ -76,20 +76,20 @@ export default function Accueil() {
         <div className="grille">
           <Link to="/temperatures" className="carte" style={{ textDecoration: 'none', color: 'inherit' }}>
             <div className="ligne-espace">
-              <span className="petit doux">Releves de temperature</span>
+              <span className="petit doux">Relevés de température</span>
               <IconeTemperature className="doux" />
             </div>
             <div className="gros-chiffre">{resume.relevesFaits} / {resume.equipements}</div>
             <span className={`etiquette ${relevesRestants === 0 ? 'ok' : 'alerte'}`}>
               {relevesRestants === 0
-                ? <><IconeValide /> Tout est releve</>
-                : `${relevesRestants} equipement${relevesRestants > 1 ? 's' : ''} en attente`}
+                ? <><IconeValide /> Tout est relevé</>
+                : `${relevesRestants} équipement${relevesRestants > 1 ? 's' : ''} en attente`}
             </span>
           </Link>
 
           <Link to="/receptions" className="carte" style={{ textDecoration: 'none', color: 'inherit' }}>
             <div className="ligne-espace">
-              <span className="petit doux">Receptions controlees</span>
+              <span className="petit doux">Réceptions contrôlées</span>
               <IconeCamion className="doux" />
             </div>
             <div className="gros-chiffre">{nombre(resume.receptionsJour)}</div>
@@ -101,7 +101,7 @@ export default function Accueil() {
               <span className="petit doux">Plan de nettoyage</span>
               <IconeBalai className="doux" />
             </div>
-            <div className="petit" style={{ marginTop: 10 }}>Cocher les taches faites</div>
+            <div className="petit" style={{ marginTop: 10 }}>Cocher les tâches faites</div>
             <span className="etiquette accent">Ouvrir</span>
           </Link>
         </div>
@@ -112,11 +112,11 @@ export default function Accueil() {
         <div className="grille">
           <Link to="/catalogue" className="carte" style={{ textDecoration: 'none', color: 'inherit' }}>
             <div className="ligne-espace">
-              <span className="petit doux">References au catalogue</span>
+              <span className="petit doux">Références au catalogue</span>
               <IconeBoite className="doux" />
             </div>
             <div className="gros-chiffre">{nombre(resume.references)}</div>
-            <span className="petit doux">{nombre(resume.unites)} unites comptees</span>
+            <span className="petit doux">{nombre(resume.unites)} unités comptées</span>
           </Link>
 
           <div className="carte">
@@ -129,7 +129,7 @@ export default function Accueil() {
             <Link to="/catalogue" className="carte" style={{ textDecoration: 'none', color: 'inherit' }}>
               <span className="petit doux">Prix de vente manquants</span>
               <div className="gros-chiffre">{nombre(resume.sansPrix)}</div>
-              <span className="etiquette alerte">A completer</span>
+              <span className="etiquette alerte">À compléter</span>
             </Link>
           )}
         </div>

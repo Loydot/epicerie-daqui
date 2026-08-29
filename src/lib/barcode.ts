@@ -32,7 +32,7 @@ async function detecteurNatifDispo(): Promise<boolean> {
 }
 
 /**
- * Ouvre la camera arriere et lance la detection en continu.
+ * Ouvre la caméra arriere et lance la detection en continu.
  * Utilise le decodeur natif du navigateur quand il existe (nettement plus rapide
  * sur Android), sinon ZXing en WebAssembly, qui marche partout y compris iOS.
  */
@@ -108,7 +108,7 @@ export async function demarreScan(
     moteur: natif ? 'natif' : 'zxing',
     torcheDispo,
     basculeTorche,
-    arrete: () => nettoyages.forEach((f) => { try { f() } catch { /* deja libere */ } }),
+    arrete: () => nettoyages.forEach((f) => { try { f() } catch { /* déjà libere */ } }),
   }
 }
 

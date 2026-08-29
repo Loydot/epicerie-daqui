@@ -31,9 +31,9 @@ const csv = (nom: string, entetes: string[], lignes: unknown[][]) =>
 
 export function exporteCatalogueCsv(produits: Produit[]): void {
   csv('catalogue', [
-    'Code-barres', 'Designation', 'Marque', 'Contenance', 'Rayon', 'Fournisseur',
+    'Code-barres', 'Désignation', 'Marque', 'Contenance', 'Rayon', 'Fournisseur',
     'Prix achat HT', 'Prix vente TTC', 'TVA %', 'Marge EUR', 'Marge %',
-    'Stock', 'Valeur stock', 'Allergenes', 'Nutri-Score', 'Modifie le',
+    'Stock', 'Valeur stock', 'Allergènes', 'Nutri-Score', 'Modifié le',
   ], produits.map((p) => {
     const m = marge(p.prixAchat, p.prixVente, p.tva)
     return [
@@ -50,7 +50,7 @@ export function exporteTemperaturesCsv(
   releves: Releve[],
   nomEquipement: (id: string) => string,
 ): void {
-  csv('temperatures', ['Date', 'Equipement', 'Moment', 'Temperature', 'Conforme', 'Action corrective', 'Releve par'],
+  csv('temperatures', ['Date', 'Équipement', 'Moment', 'Température', 'Conforme', 'Action corrective', 'Relevé par'],
     releves.map((r) => [
       dateHeureFr(r.date), nomEquipement(r.equipementId), r.moment,
       r.temp, r.conforme ? 'Oui' : 'Non', r.actionCorrective, r.operateur,
@@ -58,23 +58,23 @@ export function exporteTemperaturesCsv(
 }
 
 export function exporteReceptionsCsv(receptions: Reception[]): void {
-  csv('receptions', ['Date', 'Fournisseur', 'Bon de livraison', 'Temperature', 'Emballages', 'DLC', 'Conforme', 'Motif', 'Controle par'],
+  csv('receptions', ['Date', 'Fournisseur', 'Bon de livraison', 'Température', 'Emballages', 'DLC', 'Conforme', 'Motif', 'Contrôle par'],
     receptions.map((r) => [
       dateHeureFr(r.date), r.fournisseur, r.bonLivraison, r.tempProduit,
       r.emballageOk ? 'Conformes' : 'Non conformes', r.dlcOk ? 'Conformes' : 'Non conformes',
-      r.conforme ? 'Acceptee' : 'Refusee', r.motif, r.operateur,
+      r.conforme ? 'Acceptée' : 'Refusée', r.motif, r.operateur,
     ]))
 }
 
 export function exporteLotsCsv(lots: Lot[], nomProduit: (id: string) => string): void {
-  csv('dlc', ['Produit', 'Code-barres', 'Lot', 'DLC', 'Quantite', 'Statut', 'Saisi par', 'Retire le'],
+  csv('dlc', ['Produit', 'Code-barres', 'Lot', 'DLC', 'Quantité', 'Statut', 'Saisi par', 'Retiré le'],
     lots.map((l) => [
       nomProduit(l.produitId), l.ean, l.numeroLot, dateFr(l.dlc),
       l.quantite, l.statut, l.operateur, l.retireLe ? dateHeureFr(l.retireLe) : '',
     ]))
 }
 
-/** Sauvegarde complete : sert de filet de securite avant la synchro Supabase. */
+/** Sauvegarde complete : sert de filet de sécurité avant la synchro Supabase. */
 export function exporteSauvegarde(donnees: Record<string, unknown[]>): void {
   telecharge(
     `sauvegarde-haccp-${jourDe()}.json`,

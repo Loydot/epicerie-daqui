@@ -7,7 +7,7 @@ import { ChoixOperateur, useOperateur } from '../lib/operateur'
 import { exporteTemperaturesCsv } from '../lib/export'
 import { IconeAlerte, IconeExport, IconeTemperature, IconeValide } from '../components/Icones'
 
-/** Avant 15 h on considere que c'est le releve du matin. */
+/** Avant 15 h on considere que c'est le relevé du matin. */
 const momentParDefaut = (): Moment => (new Date().getHours() < 15 ? 'matin' : 'soir')
 
 export default function Temperatures() {
@@ -29,7 +29,7 @@ export default function Temperatures() {
   ) ?? []
 
   const nomEquipement = (id: string) =>
-    equipements.find((e) => e.id === id)?.nom ?? 'Equipement supprime'
+    equipements.find((e) => e.id === id)?.nom ?? 'Équipement supprimé'
 
   const enregistre = async (eq: Equipement) => {
     const brut = (saisies[eq.id] ?? '').replace(',', '.')
@@ -38,7 +38,7 @@ export default function Temperatures() {
     const conforme = temp >= eq.tempMin && temp <= eq.tempMax
     const action = (actions[eq.id] ?? '').trim()
     if (!conforme && !action) {
-      alert("Temperature hors zone : decris l'action corrective avant d'enregistrer (c'est ce que le controleur regarde).")
+      alert("Température hors zone : decris l'action corrective avant d'enregistrer (c'est ce que le controleur regarde).")
       return
     }
     const maintenant = new Date()
@@ -68,7 +68,7 @@ export default function Temperatures() {
       {equipements.length === 0 && (
         <div className="carte vide">
           <IconeTemperature />
-          <p>Aucun equipement. Ajoute tes frigos dans les reglages.</p>
+          <p>Aucun équipement. Ajoute tes frigos dans les réglages.</p>
         </div>
       )}
 
@@ -83,10 +83,10 @@ export default function Temperatures() {
             <div className="ligne-espace">
               <div>
                 <h2>{eq.nom}</h2>
-                <span className="petit doux">Zone admise : {eq.tempMin} °C a {eq.tempMax} °C</span>
+                <span className="petit doux">Zone admise : {eq.tempMin} °C à {eq.tempMax} °C</span>
               </div>
               {dejaFaits.length > 0 && (
-                <span className="etiquette ok"><IconeValide /> {dejaFaits.length} releve{dejaFaits.length > 1 ? 's' : ''}</span>
+                <span className="etiquette ok"><IconeValide /> {dejaFaits.length} relevé{dejaFaits.length > 1 ? 's' : ''}</span>
               )}
             </div>
 
@@ -102,7 +102,7 @@ export default function Temperatures() {
 
             <div className="ligne">
               <div className="champ">
-                <label htmlFor={`t-${eq.id}`}>Temperature relevee (°C)</label>
+                <label htmlFor={`t-${eq.id}`}>Température relevée (°C)</label>
                 <input id={`t-${eq.id}`} className="mono" type="number" step="0.1" inputMode="decimal"
                   placeholder={`${eq.tempMin} a ${eq.tempMax}`}
                   value={saisies[eq.id] ?? ''}
@@ -122,9 +122,9 @@ export default function Temperatures() {
               <>
                 <div className="bandeau danger">
                   <IconeAlerte />
-                  <span>Hors zone. Note ce que tu fais : produits transferes, reglage du thermostat, appel au frigoriste…</span>
+                  <span>Hors zone. Note ce que tu fais : produits transférés, réglage du thermostat, appel au frigoriste…</span>
                 </div>
-                <textarea placeholder="Action corrective mise en oeuvre"
+                <textarea placeholder="Action corrective mise en œuvre"
                   value={actions[eq.id] ?? ''}
                   onChange={(e) => setActions((a) => ({ ...a, [eq.id]: e.target.value }))} />
               </>
@@ -132,7 +132,7 @@ export default function Temperatures() {
 
             <button type="button" className="principal large" onClick={() => enregistre(eq)}
               disabled={(saisies[eq.id] ?? '') === ''}>
-              Enregistrer le releve
+              Enregistrer le relevé
             </button>
           </div>
         )
@@ -150,7 +150,7 @@ export default function Temperatures() {
           <div className="defilable">
             <table className="tableau">
               <thead>
-                <tr><th>Date</th><th>Equipement</th><th className="num">Temp.</th><th>Etat</th><th>Par</th></tr>
+                <tr><th>Date</th><th>Équipement</th><th className="num">Temp.</th><th>État</th><th>Par</th></tr>
               </thead>
               <tbody>
                 {historique.map((r) => (

@@ -23,29 +23,29 @@ export default function Controles() {
 
   const cartes = [
     {
-      to: '/temperatures', titre: 'Temperatures', Icone: IconeTemperature,
-      texte: 'Relever les frigos, congelateurs et vitrines matin et soir.',
+      to: '/temperatures', titre: 'Températures', Icone: IconeTemperature,
+      texte: 'Relever les frigos, congélateurs et vitrines matin et soir.',
       alerte: etat && (etat.horsZone > 0
-        ? { niveau: 'danger', texte: `${etat.horsZone} releve hors zone` }
+        ? { niveau: 'danger', texte: `${etat.horsZone} relevé hors zone` }
         : etat.relevesManquants > 0
-          ? { niveau: 'alerte', texte: `${etat.relevesManquants} equipement(s) a relever` }
+          ? { niveau: 'alerte', texte: `${etat.relevesManquants} équipement(s) a relever` }
           : { niveau: 'ok', texte: 'A jour pour aujourd\'hui' }),
     },
     {
-      to: '/receptions', titre: 'Receptions', Icone: IconeCamion,
-      texte: 'Controler chaque livraison : temperature, emballages, DLC.',
-      alerte: etat && { niveau: '', texte: `${etat.receptionsJour} controle(s) aujourd'hui` },
+      to: '/receptions', titre: 'Réceptions', Icone: IconeCamion,
+      texte: 'Controler chaque livraison : température, emballages, DLC.',
+      alerte: etat && { niveau: '', texte: `${etat.receptionsJour} contrôle(s) aujourd'hui` },
     },
     {
       to: '/dlc', titre: 'Dates limites', Icone: IconeCalendrier,
       texte: 'Suivre les lots et tracer les retraits de la vente.',
       alerte: etat && (etat.urgents > 0
-        ? { niveau: 'danger', texte: `${etat.urgents} lot(s) a traiter` }
+        ? { niveau: 'danger', texte: `${etat.urgents} lot(s) à traiter` }
         : { niveau: 'ok', texte: 'Rien d\'urgent' }),
     },
     {
       to: '/nettoyage', titre: 'Plan de nettoyage', Icone: IconeBalai,
-      texte: 'Cocher les taches quotidiennes, hebdomadaires et mensuelles.',
+      texte: 'Cocher les tâches quotidiennes, hebdomadaires et mensuelles.',
       alerte: null,
     },
   ]

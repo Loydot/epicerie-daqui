@@ -12,7 +12,7 @@ export function jourDe(d: Date = new Date()): string {
 
 export const aujourdhui = (): string => jourDe()
 
-/** Numero de semaine ISO, ex. 2026-S09. */
+/** Numéro de semaine ISO, ex. 2026-S09. */
 export function semaineDe(d: Date = new Date()): string {
   const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))
   t.setUTCDate(t.getUTCDate() + 4 - (t.getUTCDay() || 7))
@@ -40,7 +40,7 @@ export function dateHeureFr(iso: string): string {
     : d.toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
-/** Nombre de jours entiers entre aujourd'hui et une date AAAA-MM-JJ. Negatif = depasse. */
+/** Nombre de jours entiers entre aujourd'hui et une date AAAA-MM-JJ. Negatif = dépassé. */
 export function joursRestants(dlc: string): number {
   if (!dlc) return Number.POSITIVE_INFINITY
   const cible = new Date(`${dlc}T12:00:00`).getTime()
@@ -61,7 +61,7 @@ export function marge(prixAchat: number | null, prixVente: number | null, tva: n
 export const normalise = (s: string): string =>
   s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().trim()
 
-/** Verifie la cle de controle d'un EAN-8 / EAN-13 / UPC-A. */
+/** Vérifie la cle de contrôle d'un EAN-8 / EAN-13 / UPC-A. */
 export function eanValide(code: string): boolean {
   if (!/^\d{8}$|^\d{12,13}$/.test(code)) return false
   const chiffres = code.split('').map(Number)

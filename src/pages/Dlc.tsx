@@ -22,7 +22,7 @@ export default function Dlc() {
   const lots = useLiveQuery(() => db.lots.toArray(), [], []) ?? []
   const produits = useLiveQuery(() => db.produits.toArray(), [], []) ?? []
 
-  const nomProduit = (id: string) => produits.find((p) => p.id === id)?.nom ?? 'Produit supprime'
+  const nomProduit = (id: string) => produits.find((p) => p.id === id)?.nom ?? 'Produit supprimé'
 
   const resultats = useMemo(() => {
     const cle = normalise(recherche)
@@ -84,7 +84,7 @@ export default function Dlc() {
                   </div>
                 </button>
               ))}
-              {resultats.length === 0 && <p className="petit doux">Aucun produit trouve. Scanne-le d'abord.</p>}
+              {resultats.length === 0 && <p className="petit doux">Aucun produit trouvé. Scanne-le d'abord.</p>}
             </div>
           )}
 
@@ -94,7 +94,7 @@ export default function Dlc() {
               <input id="l-dlc" type="date" value={dlc} onChange={(e) => setDlc(e.target.value)} />
             </div>
             <div>
-              <label htmlFor="l-qte">Quantite</label>
+              <label htmlFor="l-qte">Quantité</label>
               <input id="l-qte" className="mono" type="number" min="1" inputMode="numeric" value={quantite}
                 onChange={(e) => setQuantite(Number(e.target.value) || 1)} />
             </div>
@@ -159,13 +159,13 @@ export default function Dlc() {
                     </div>
                   </div>
                   <span className={`etiquette ${niveau}`}>
-                    {l.statut === 'retire' ? 'Retire' : l.statut === 'vendu' ? 'Vendu'
-                      : j < 0 ? `Depasse de ${-j} j` : j === 0 ? 'Dernier jour' : `J-${j}`}
+                    {l.statut === 'retire' ? 'Retiré' : l.statut === 'vendu' ? 'Vendu'
+                      : j < 0 ? `Dépassée de ${-j} j` : j === 0 ? 'Dernier jour' : `J-${j}`}
                   </span>
                   {l.statut === 'en_stock' && (
                     <div className="ligne" style={{ width: '100%', marginTop: 6 }}>
                       <button type="button" className="champ discret" onClick={() => change(l, 'vendu')}>
-                        Ecoule
+                        Écoulé
                       </button>
                       <button type="button" className="champ destructif" onClick={() => change(l, 'retire')}>
                         Retirer de la vente

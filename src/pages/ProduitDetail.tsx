@@ -39,7 +39,7 @@ export default function ProduitDetail() {
   }
 
   const supprimer = async () => {
-    if (!confirm(`Supprimer definitivement "${p.nom}" du catalogue ?`)) return
+    if (!confirm(`Supprimer définitivement "${p.nom}" du catalogue ?`)) return
     await db.lots.where('produitId').equals(p.id).delete()
     await db.produits.delete(p.id)
     navigate('/catalogue', { replace: true })
@@ -51,7 +51,7 @@ export default function ProduitDetail() {
     const [j, mo, a] = dlc.split(/[/\-.]/)
     if (!j || !mo || !a) { alert('Format attendu : JJ/MM/AAAA'); return }
     const iso = `${a.padStart(4, '20')}-${mo.padStart(2, '0')}-${j.padStart(2, '0')}`
-    const qte = Number(prompt('Quantite de ce lot', '1')) || 1
+    const qte = Number(prompt('Quantité de ce lot', '1')) || 1
     await db.lots.add({
       id: uid(), produitId: p.id, ean: p.ean, numeroLot: '', dlc: iso,
       quantite: qte, statut: 'en_stock', operateur: '', creeLe: new Date().toISOString(), retireLe: '',
@@ -76,7 +76,7 @@ export default function ProduitDetail() {
       <div className="carte pile">
         <div className="section-titre">Identification</div>
         <div>
-          <label htmlFor="d-nom">Designation</label>
+          <label htmlFor="d-nom">Désignation</label>
           <input id="d-nom" value={p.nom} onChange={(e) => maj({ nom: e.target.value })} />
         </div>
         <div className="deux-champs">
@@ -119,8 +119,8 @@ export default function ProduitDetail() {
             <select id="d-tva" value={p.tva} onChange={(e) => maj({ tva: Number(e.target.value) })}>
               <option value={5.5}>5,5 % — alimentaire courant</option>
               <option value={20}>20 % — alcool, entretien, non alimentaire</option>
-              <option value={10}>10 % — consommation immediate</option>
-              <option value={2.1}>2,1 % — presse, medicaments</option>
+              <option value={10}>10 % — consommation immédiate</option>
+              <option value={2.1}>2,1 % — presse, médicaments</option>
               <option value={0}>0 %</option>
             </select>
           </div>
@@ -133,7 +133,7 @@ export default function ProduitDetail() {
         {m && (
           <div className="bandeau">
             <IconeValide />
-            <span>Marge : <strong>{euro(m.euros)}</strong> par unite ({m.pourcent.toFixed(1)} %) · Stock valorise {euro(p.stock * (p.prixAchat ?? 0))}</span>
+            <span>Marge : <strong>{euro(m.euros)}</strong> par unité ({m.pourcent.toFixed(1)} %) · Stock valorisé {euro(p.stock * (p.prixAchat ?? 0))}</span>
           </div>
         )}
 
@@ -143,7 +143,7 @@ export default function ProduitDetail() {
 
         <div className="ligne">
           <button type="button" className="champ principal haut" onClick={enregistrer} disabled={!modifie}>
-            <IconeValide /> {sauve && !modifie ? 'Enregistre' : 'Enregistrer'}
+            <IconeValide /> {sauve && !modifie ? 'Enregistré' : 'Enregistrer'}
           </button>
         </div>
       </div>
@@ -167,8 +167,8 @@ export default function ProduitDetail() {
                     <div className="petit doux">{l.quantite} u.{l.numeroLot && ` · lot ${l.numeroLot}`}</div>
                   </div>
                   <span className={`etiquette ${niveau}`}>
-                    {l.statut === 'retire' ? 'Retire' : l.statut === 'vendu' ? 'Vendu'
-                      : j < 0 ? `Depasse de ${-j} j` : j === 0 ? "Dernier jour" : `J-${j}`}
+                    {l.statut === 'retire' ? 'Retiré' : l.statut === 'vendu' ? 'Vendu'
+                      : j < 0 ? `Dépassée de ${-j} j` : j === 0 ? "Dernier jour" : `J-${j}`}
                   </span>
                 </div>
               )
@@ -184,12 +184,12 @@ export default function ProduitDetail() {
             <IconeExport /> Fiche produit PDF
           </button>
           <button type="button" onClick={async () => (await chargePdf()).etiquettesPdf([enregistre], magasin)}>
-            <IconeExport /> Etiquette de rayon
+            <IconeExport /> Étiquette de rayon
           </button>
         </div>
         <p className="petit doux" style={{ marginTop: 10 }}>
-          Fiche creee le {dateHeureFr(p.creeLe)} · derniere modification {dateHeureFr(enregistre.majLe)}
-          {p.source === 'openfoodfacts' && ' · donnees initiales Open Food Facts'}
+          Fiche créée le {dateHeureFr(p.creeLe)} · dernière modification {dateHeureFr(enregistre.majLe)}
+          {p.source === 'openfoodfacts' && ' · données initiales Open Food Facts'}
         </p>
       </div>
 

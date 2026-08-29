@@ -1,7 +1,7 @@
 /**
  * Recherche d'un produit par code-barres sur Open Food Facts (base libre, tres
  * fournie sur l'alimentaire francais), avec repli sur Open Products Facts pour
- * le non-alimentaire (droguerie, entretien) qu'une epicerie vend aussi.
+ * le non-alimentaire (droguerie, entretien) qu'une épicerie vend aussi.
  */
 
 export interface FicheOff {
@@ -32,7 +32,7 @@ const premier = (...vals: unknown[]): string => {
   return ''
 }
 
-/** "Epicerie, Conserves, Legumes" -> "Conserves" : on garde une categorie lisible. */
+/** "Épicerie, Conserves, Legumes" -> "Conserves" : on garde une catégorie lisible. */
 function rayonDepuisCategories(categories: string): string {
   const parts = categories.split(',').map((c) => c.replace(/^[a-z]{2}:/, '').trim()).filter(Boolean)
   if (!parts.length) return ''
@@ -61,7 +61,7 @@ async function interroge(base: string, ean: string, signal: AbortSignal): Promis
 }
 
 /**
- * Renvoie null si le produit est inconnu ou si le reseau ne repond pas : dans les
+ * Renvoie null si le produit est inconnu ou si le réseau ne repond pas : dans les
  * deux cas l'appli bascule sur la saisie manuelle, sans jamais bloquer le scan.
  */
 export async function chercheParEan(ean: string, timeoutMs = 6000): Promise<FicheOff | null> {

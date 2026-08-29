@@ -3,9 +3,9 @@ import { demarreScan, retourScanReussi, type SessionScan } from '../lib/barcode'
 import { IconeAlerte, IconeClavier, IconeTorche } from './Icones'
 
 interface Props {
-  /** Appele une fois par code lu, deja dedoublonne. */
+  /** Appele une fois par code lu, déjà dedoublonne. */
   surCode: (code: string) => void
-  /** Met la camera en pause, par exemple pendant qu'une fiche est ouverte. */
+  /** Met la caméra en pause, par exemple pendant qu'une fiche est ouverte. */
   enPause?: boolean
 }
 
@@ -52,10 +52,10 @@ export default function Scanner({ surCode, enPause = false }: Props) {
         const nom = (e as DOMException)?.name
         setErreur(
           nom === 'NotAllowedError'
-            ? "Acces a la camera refuse. Autorise-le dans les parametres du site, puis recharge la page."
+            ? "Accès à la caméra refusé. Autorise-le dans les paramètres du site, puis recharge la page."
             : nom === 'NotFoundError'
-              ? "Aucune camera detectee sur cet appareil."
-              : "La camera n'a pas pu demarrer. Utilise la saisie manuelle en attendant.",
+              ? "Aucune caméra détectée sur cet appareil."
+              : "La caméra n'a pas pu démarrer. Utilise la saisie manuelle en attendant.",
         )
         setSaisieOuverte(true)
       }

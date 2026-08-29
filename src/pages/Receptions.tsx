@@ -53,13 +53,13 @@ export default function Receptions() {
     <div className="pile">
       {!ouvert && (
         <button type="button" className="principal haut large" onClick={() => setOuvert(true)}>
-          <IconeCamion /> Nouveau controle a reception
+          <IconeCamion /> Nouveau contrôle à réception
         </button>
       )}
 
       {ouvert && (
         <div className="carte pile">
-          <h2>Controle a reception</h2>
+          <h2>Contrôle à réception</h2>
 
           {operateurs.length > 0 && (
             <ChoixOperateur valeur={operateur} surChangement={setOperateur} options={operateurs} />
@@ -81,14 +81,14 @@ export default function Receptions() {
                 onChange={(e) => setF({ ...f, bonLivraison: e.target.value })} />
             </div>
             <div>
-              <label htmlFor="r-temp">Temperature produit (°C)</label>
+              <label htmlFor="r-temp">Température produit (°C)</label>
               <input id="r-temp" className="mono" type="number" step="0.1" inputMode="decimal" value={f.temp}
-                onChange={(e) => setF({ ...f, temp: e.target.value })} placeholder="Frais : 0 a 4" />
+                onChange={(e) => setF({ ...f, temp: e.target.value })} placeholder="Frais : 0 à 4" />
             </div>
           </div>
 
           <div className="pile">
-            <label>Points de controle</label>
+            <label>Points de contrôle</label>
             <label className="ligne" style={{ fontWeight: 500, color: 'var(--texte)' }}>
               <input type="checkbox" style={{ width: 20, minHeight: 20, flex: '0 0 20px' }}
                 checked={f.emballageOk} onChange={(e) => setF({ ...f, emballageOk: e.target.checked })} />
@@ -105,9 +105,9 @@ export default function Receptions() {
             <>
               <div className="bandeau danger">
                 <IconeAlerte />
-                <span>Livraison non conforme : precise le motif et ce qui a ete fait (refus total, refus partiel, reserve sur le BL).</span>
+                <span>Livraison non conforme : précise le motif et ce qui a été fait (refus total, refus partiel, réserve sur le BL).</span>
               </div>
-              <textarea placeholder="Motif et decision" value={f.motif}
+              <textarea placeholder="Motif et décision" value={f.motif}
                 onChange={(e) => setF({ ...f, motif: e.target.value })} />
             </>
           )}
@@ -125,7 +125,7 @@ export default function Receptions() {
 
       <div className="carte">
         <div className="ligne-espace">
-          <h2>Historique des receptions</h2>
+          <h2>Historique des réceptions</h2>
           {receptions.length > 0 && (
             <button type="button" className="discret" onClick={() => exporteReceptionsCsv(receptions)}>
               <IconeExport /> CSV
@@ -133,7 +133,7 @@ export default function Receptions() {
           )}
         </div>
         {receptions.length === 0 ? (
-          <div className="vide"><IconeCamion /><p>Aucune reception enregistree.</p></div>
+          <div className="vide"><IconeCamion /><p>Aucune réception enregistrée.</p></div>
         ) : (
           <div className="liste" style={{ marginTop: 8 }}>
             {receptions.map((r) => (
@@ -148,7 +148,7 @@ export default function Receptions() {
                   {!r.conforme && r.motif && <div className="petit" style={{ color: 'var(--danger)' }}>{r.motif}</div>}
                 </div>
                 <span className={`etiquette ${r.conforme ? 'ok' : 'danger'}`}>
-                  {r.conforme ? 'Acceptee' : 'Refusee'}
+                  {r.conforme ? 'Acceptée' : 'Refusée'}
                 </span>
               </div>
             ))}

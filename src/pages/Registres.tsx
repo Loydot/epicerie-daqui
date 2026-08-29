@@ -8,7 +8,7 @@ import { IconeExport, IconeRegistre } from '../components/Icones'
 /** Le moteur PDF pese plusieurs centaines de Ko : charge seulement au clic. */
 const chargePdf = () => import('../lib/pdf')
 
-/** Debut du mois en cours : la periode qu'on edite le plus souvent. */
+/** Debut du mois en cours : la période qu'on edite le plus souvent. */
 const debutDuMois = () => {
   const d = new Date()
   return jourDe(new Date(d.getFullYear(), d.getMonth(), 1))
@@ -46,11 +46,11 @@ export default function Registres() {
       registrePdf({
         magasin, du, au,
         releves: releves.filter((r) => dans(r.jour)).sort((a, b) => a.date.localeCompare(b.date)),
-        nomEquipement: (id) => equipements.find((e) => e.id === id)?.nom ?? 'Equipement supprime',
+        nomEquipement: (id) => equipements.find((e) => e.id === id)?.nom ?? 'Équipement supprimé',
         receptions: receptions.filter((r) => dans(r.jour)).sort((a, b) => a.date.localeCompare(b.date)),
         lots: lots.filter((l) => dans(l.dlc) || (l.retireLe && dans(jourDe(new Date(l.retireLe)))))
           .sort((a, b) => a.dlc.localeCompare(b.dlc)),
-        nomProduit: (id) => produits.find((p) => p.id === id)?.nom ?? 'Produit supprime',
+        nomProduit: (id) => produits.find((p) => p.id === id)?.nom ?? 'Produit supprimé',
         nettoyages: nettoyages.filter((n) => dans(jourDe(new Date(n.date))))
           .sort((a, b) => a.date.localeCompare(b.date)),
         taches,
@@ -64,7 +64,7 @@ export default function Registres() {
     const produits = (await db.produits.toArray())
       .filter((p) => p.prixVente != null)
       .sort((a, b) => (a.rayon || 'zzz').localeCompare(b.rayon || 'zzz') || a.nom.localeCompare(b.nom, 'fr'))
-    if (produits.length === 0) { alert('Aucun produit avec un prix de vente renseigne.'); return }
+    if (produits.length === 0) { alert('Aucun produit avec un prix de vente renseigné.'); return }
     const { etiquettesPdf } = await chargePdf()
     etiquettesPdf(produits, magasin)
   }
@@ -76,8 +76,8 @@ export default function Registres() {
       <div className="carte pile">
         <h2>Registre HACCP</h2>
         <p className="petit doux">
-          Un seul PDF regroupant les quatre registres d'autocontrole sur la periode choisie.
-          C'est le document a presenter en cas de controle.
+          Un seul PDF regroupant les quatre registres d'autocontrôle sur la période choisie.
+          C'est le document a présenter en cas de contrôle.
         </p>
 
         <div className="deux-champs">
@@ -93,17 +93,17 @@ export default function Registres() {
 
         {compte && (
           <div className="grille">
-            <div className="carte"><div className="petit doux">Releves de temperature</div><div className="gros-chiffre">{nombre(compte.releves)}</div></div>
-            <div className="carte"><div className="petit doux">Receptions</div><div className="gros-chiffre">{nombre(compte.receptions)}</div></div>
+            <div className="carte"><div className="petit doux">Relevés de température</div><div className="gros-chiffre">{nombre(compte.releves)}</div></div>
+            <div className="carte"><div className="petit doux">Réceptions</div><div className="gros-chiffre">{nombre(compte.receptions)}</div></div>
             <div className="carte"><div className="petit doux">Lots suivis</div><div className="gros-chiffre">{nombre(compte.lots)}</div></div>
-            <div className="carte"><div className="petit doux">Taches de nettoyage</div><div className="gros-chiffre">{nombre(compte.nettoyages)}</div></div>
+            <div className="carte"><div className="petit doux">Tâches de nettoyage</div><div className="gros-chiffre">{nombre(compte.nettoyages)}</div></div>
           </div>
         )}
 
         <button type="button" className="principal haut large" onClick={genere} disabled={enCours || total === 0}>
           <IconeRegistre /> {enCours ? 'Generation…' : 'Generer le registre PDF'}
         </button>
-        {total === 0 && <p className="petit doux">Aucune saisie sur cette periode.</p>}
+        {total === 0 && <p className="petit doux">Aucune saisie sur cette période.</p>}
       </div>
 
       <div className="carte pile">

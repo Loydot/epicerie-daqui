@@ -11,7 +11,7 @@ const LIBELLES: Record<Frequence, string> = {
   mensuel: 'Chaque mois',
 }
 
-/** La periode courante depend de la frequence : le jour, la semaine ISO ou le mois. */
+/** La période courante depend de la frequence : le jour, la semaine ISO ou le mois. */
 const periodeCourante = (f: Frequence): string =>
   f === 'quotidien' ? aujourdhui() : f === 'hebdomadaire' ? semaineDe() : moisDe()
 
@@ -59,7 +59,7 @@ export default function Nettoyage() {
       {taches.length === 0 && (
         <div className="carte vide">
           <IconeBalai />
-          <p>Aucune tache. Ajoute ton plan de nettoyage dans les reglages.</p>
+          <p>Aucune tâche. Ajoute ton plan de nettoyage dans les réglages.</p>
         </div>
       )}
 
@@ -73,7 +73,7 @@ export default function Nettoyage() {
             <div className="ligne-espace">
               <h2>{LIBELLES[freq]}</h2>
               <span className={`etiquette ${restants === 0 ? 'ok' : 'alerte'}`}>
-                {restants === 0 ? <><IconeValide /> Termine</> : `${restants} restante${restants > 1 ? 's' : ''}`}
+                {restants === 0 ? <><IconeValide /> Terminé</> : `${restants} restante${restants > 1 ? 's' : ''}`}
               </span>
             </div>
 
