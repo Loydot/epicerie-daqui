@@ -307,10 +307,9 @@ input[type="number"] { font-variant-numeric: tabular-nums; }
 }
 
 /* ---------- Rayons du catalogue ---------- */
-/* Collant : sur une liste de 300 references, savoir dans quel rayon on se trouve
-   compte plus que de gagner quelques pixels. */
+/* Pas de position collante : elle glisserait sous la barre de titre, elle-meme
+   collante, et disparaitrait. Un en-tete simple est previsible partout. */
 .entete-rayon {
-  position: sticky; top: 0; z-index: 1;
   display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
   padding: 10px 0 6px; margin-top: 8px;
   background: var(--surface);
