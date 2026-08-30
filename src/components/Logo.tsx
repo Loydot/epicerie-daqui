@@ -1,46 +1,38 @@
-import { CADRE, LOGO, RAPPORT } from '../lib/logo'
+import { LOGO, RAPPORT } from '../lib/logo'
 
 interface Props {
-  /** Hauteur affichée, en pixels. */
+  /** Hauteur du logo lui-même, en pixels. */
   hauteur?: number
   className?: string
 }
 
 /**
- * Affiche la zone utile du logo sans jamais altérer le fichier : l'image est
- * agrandie puis décalée dans un cadre qui masque les marges blanches.
+ * Le logo, en vectoriel : net à toute taille.
  *
- * Le fond blanc reste blanc, y compris en thème sombre : c'est voulu, un logo
- * imprimé se pose sur du papier, pas sur du gris.
+ * Il est posé sur une plaque blanche, comme un logo imprimé sur du papier. Sans
+ * elle, le lettrage noir de « L'ÉPICERIE » et de « VINGRAU » disparaît sur le
+ * thème sombre — le détourage seul ne suffit pas.
  */
 export default function Logo({ hauteur = 48, className = '' }: Props) {
+  const marge = Math.max(3, Math.round(hauteur * 0.07))
   return (
     <span
       className={className}
       style={{
-        display: 'block',
-        height: hauteur,
-        width: hauteur * RAPPORT,
-        position: 'relative',
-        overflow: 'hidden',
-        borderRadius: 8,
+        display: 'inline-flex',
+        padding: marge,
         background: '#fff',
+        borderRadius: Math.max(4, Math.round(hauteur * 0.1)),
         flex: '0 0 auto',
+        lineHeight: 0,
       }}
     >
       <img
         src={LOGO}
         alt="L'Épicerie d'Aquí — Vingrau"
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: `${100 / CADRE.largeur}%`,
-          maxWidth: 'none',
-          // Les pourcentages d'une translation se comptent sur l'image
-          // elle-même : le cadrage reste exact quelle que soit la taille.
-          transform: `translate(${-CADRE.gauche * 100}%, ${-CADRE.haut * 100}%)`,
-        }}
+        width={Math.round(hauteur * RAPPORT)}
+        height={hauteur}
+        style={{ display: 'block', height: hauteur, width: 'auto' }}
       />
     </span>
   )

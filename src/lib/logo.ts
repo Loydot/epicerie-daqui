@@ -1,35 +1,29 @@
 /**
  * Le logo du magasin.
  *
- * Le fichier `public/logo.jpg` est l'original, à l'octet près : il n'est jamais
- * modifié, ni recadré, ni recompressé. Il contient de larges marges blanches,
- * qui feraient paraître le dessin minuscule sur une étiquette.
+ * `public/logo.jpg` est l'original fourni, conservé à l'octet près : il ne doit
+ * être ni recadré, ni recompressé, ni remplacé. Il reste la référence.
  *
- * On ne montre donc que la zone utile, au moment de l'affichage. Changer les
- * quatre nombres ci-dessous suffit à recadrer autrement — ou à tout montrer,
- * en remettant 0, 0, 1, 1.
+ * `public/logo.svg` en est la version vectorielle, détourée du fond blanc : elle
+ * reste nette à n'importe quelle taille, d'une étiquette de 5 mm à une enseigne,
+ * et son fond transparent lui permet de se poser aussi bien sur clair que sur
+ * sombre. C'est elle que l'application affiche.
  */
 
-export const LOGO = './logo.jpg'
+export const LOGO = './logo.svg'
+export const LOGO_ORIGINAL = './logo.jpg'
 
-/** Zone utile, en fraction de l'image (mesurée sur le contenu non blanc). */
-export const CADRE = {
-  gauche: 152 / 1024,
-  haut: 370 / 1536,
-  largeur: 720 / 1024,
-  hauteur: 725 / 1536,
-}
-
-/** Proportions de la zone montrée, pour réserver la bonne place. */
-export const RAPPORT = (CADRE.largeur * 1024) / (CADRE.hauteur * 1536)
+/** Proportions du tracé, reprises du viewBox du SVG. */
+export const RAPPORT = 720 / 725
 
 /**
- * Version recadrée pour les PDF : jsPDF ne sait pas rogner une image, on lui
- * prépare donc un canevas. Le fichier d'origine n'est pas touché pour autant.
+ * Version matricielle pour les PDF : jsPDF ne sait pas placer un SVG. On le
+ * dessine donc dans un canevas, à une définition largement supérieure à ce que
+ * l'impression demande, pour rester net même sur un grand format.
  */
 let cache: string | null = null
 
-export async function logoPourPdf(): Promise<string | null> {
+export async function logoPourPdf(largeurCible = 900): Promise<string | null> {
   if (cache) return cache
   try {
     const image = await new Promise<HTMLImageElement>((resolve, rejeter) => {
@@ -39,22 +33,17 @@ export async function logoPourPdf(): Promise<string | null> {
       img.src = LOGO
     })
 
-    const l = Math.round(image.naturalWidth * CADRE.largeur)
-    const h = Math.round(image.naturalHeight * CADRE.hauteur)
+    const l = largeurCible
+    const h = Math.round(l / RAPPORT)
     const canvas = document.createElement('canvas')
     canvas.width = l
     canvas.height = h
     const ctx = canvas.getContext('2d')
     if (!ctx) return null
-    // Fond blanc : un PDF n'a pas de transparence utile ici.
+    // Un PDF n'a pas de transparence utile ici : on aplatit sur du blanc.
     ctx.fillStyle = '#ffffff'
     ctx.fillRect(0, 0, l, h)
-    ctx.drawImage(
-      image,
-      Math.round(image.naturalWidth * CADRE.gauche),
-      Math.round(image.naturalHeight * CADRE.haut),
-      l, h, 0, 0, l, h,
-    )
+    ctx.drawImage(image, 0, 0, l, h)
     cache = canvas.toDataURL('image/jpeg', 0.92)
     return cache
   } catch {
