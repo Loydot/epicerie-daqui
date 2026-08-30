@@ -1,9 +1,10 @@
+import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, uid } from '../db/db'
 import type { Frequence, Tache } from '../db/types'
 import { aujourdhui, dateHeureFr, moisDe, semaineDe } from '../lib/format'
 import { ChoixOperateur, useOperateur } from '../lib/operateur'
-import { IconeValide } from '../components/Icones'
+import { IconeCorbeille, IconeReglages, IconeValide } from '../components/Icones'
 import AjoutTache from '../components/AjoutTache'
 
 const LIBELLES: Record<Frequence, string> = {
@@ -16,8 +17,15 @@ const LIBELLES: Record<Frequence, string> = {
 const periodeCourante = (f: Frequence): string =>
   f === 'quotidien' ? aujourdhui() : f === 'hebdomadaire' ? semaineDe() : moisDe()
 
+const FREQUENCES: Array<[Frequence, string]> = [
+  ['quotidien', 'Chaque jour'],
+  ['hebdomadaire', 'Chaque semaine'],
+  ['mensuel', 'Chaque mois'],
+]
+
 export default function Nettoyage() {
   const [operateur, setOperateur, operateurs] = useOperateur()
+  const [enEdition, setEnEdition] = useState<string | null>(null)
 
   const taches = useLiveQuery(
     async () => (await db.taches.toArray()).filter((t) => t.actif === 1).sort((a, b) => a.ordre - b.ordre),
@@ -45,6 +53,18 @@ export default function Nettoyage() {
       operateur,
       commentaire: '',
     })
+  }
+
+  const supprime = async (t: Tache) => {
+    if (!confirm(
+      `Supprimer la tâche « ${t.nom} » ?
+
+`
+      + "Les fois où elle a été cochée disparaissent aussi du registre.",
+    )) return
+    await db.nettoyages.where('tacheId').equals(t.id).delete()
+    await db.taches.delete(t.id)
+    setEnEdition(null)
   }
 
   const groupes: Frequence[] = ['quotidien', 'hebdomadaire', 'mensuel']
@@ -76,31 +96,76 @@ export default function Nettoyage() {
             <div className="liste" style={{ marginTop: 8 }}>
               {duGroupe.map((t) => {
                 const fait = estFait(t)
+                const edite = enEdition === t.id
                 return (
-                  <button key={t.id} type="button" className="item" onClick={() => bascule(t)}>
-                    <span
-                      aria-hidden
-                      style={{
-                        width: 24, height: 24, flex: '0 0 24px', borderRadius: 7,
-                        display: 'grid', placeItems: 'center',
-                        border: `1.8px solid ${fait ? 'var(--ok)' : 'var(--bord)'}`,
-                        background: fait ? 'var(--ok)' : 'transparent',
-                        color: '#fff',
-                      }}
+                  <div key={t.id} className="item" style={{ flexWrap: 'wrap' }}>
+                    <button
+                      type="button" className="item"
+                      style={{ padding: 0, flex: 1 }}
+                      onClick={() => bascule(t)}
+                      aria-pressed={Boolean(fait)}
                     >
-                      {fait && <IconeValide />}
-                    </span>
-                    <div className="item-corps">
-                      <div className="item-nom" style={{ textDecoration: fait ? 'line-through' : undefined, opacity: fait ? .6 : 1 }}>
-                        {t.nom}
+                      <span
+                        aria-hidden
+                        style={{
+                          width: 24, height: 24, flex: '0 0 24px', borderRadius: 7,
+                          display: 'grid', placeItems: 'center',
+                          border: `1.8px solid ${fait ? 'var(--ok)' : 'var(--bord)'}`,
+                          background: fait ? 'var(--ok)' : 'transparent',
+                          color: '#fff',
+                        }}
+                      >
+                        {fait && <IconeValide />}
+                      </span>
+                      <div className="item-corps">
+                        <div className="item-nom" style={{ textDecoration: fait ? 'line-through' : undefined, opacity: fait ? .6 : 1 }}>
+                          {t.nom}
+                        </div>
+                        <div className="petit doux">
+                          {fait
+                            ? `Fait le ${dateHeureFr(fait.date)}${fait.operateur ? ` par ${fait.operateur}` : ''}`
+                            : [t.zone, t.produitUtilise].filter(Boolean).join(' · ')}
+                        </div>
                       </div>
-                      <div className="petit doux">
-                        {fait
-                          ? `Fait le ${dateHeureFr(fait.date)}${fait.operateur ? ` par ${fait.operateur}` : ''}`
-                          : [t.zone, t.produitUtilise].filter(Boolean).join(' · ')}
+                    </button>
+
+                    <button type="button" className="discret" aria-label={`Modifier ${t.nom}`}
+                      aria-expanded={edite} onClick={() => setEnEdition(edite ? null : t.id)}>
+                      <IconeReglages />
+                    </button>
+
+                    {edite && (
+                      <div className="pile" style={{ width: '100%', paddingTop: 10 }}>
+                        <div>
+                          <label htmlFor={`tn-${t.id}`}>Tâche</label>
+                          <input id={`tn-${t.id}`} value={t.nom}
+                            onChange={(e) => void db.taches.update(t.id, { nom: e.target.value })} />
+                        </div>
+                        <div className="deux-champs">
+                          <div>
+                            <label htmlFor={`tf-${t.id}`}>Fréquence</label>
+                            <select id={`tf-${t.id}`} value={t.frequence}
+                              onChange={(e) => void db.taches.update(t.id, { frequence: e.target.value as Frequence })}>
+                              {FREQUENCES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <label htmlFor={`tz-${t.id}`}>Zone</label>
+                            <input id={`tz-${t.id}`} value={t.zone}
+                              onChange={(e) => void db.taches.update(t.id, { zone: e.target.value })} />
+                          </div>
+                        </div>
+                        <div>
+                          <label htmlFor={`tp-${t.id}`}>Produit utilisé</label>
+                          <input id={`tp-${t.id}`} value={t.produitUtilise}
+                            onChange={(e) => void db.taches.update(t.id, { produitUtilise: e.target.value })} />
+                        </div>
+                        <button type="button" className="destructif large" onClick={() => supprime(t)}>
+                          <IconeCorbeille /> Supprimer cette tâche
+                        </button>
                       </div>
-                    </div>
-                  </button>
+                    )}
+                  </div>
                 )
               })}
             </div>

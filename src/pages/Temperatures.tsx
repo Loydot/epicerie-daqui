@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, uid } from '../db/db'
-import type { Equipement, Moment } from '../db/types'
+import type { Equipement, Moment, TypeEquipement } from '../db/types'
 import { aujourdhui, dateHeureCourte, dateHeureFr, jourDe, nombre } from '../lib/format'
 import { ChoixOperateur, useOperateur } from '../lib/operateur'
 import { exporteTemperaturesCsv } from '../lib/export'
-import { IconeAlerte, IconeCorbeille, IconeExport, IconeValide } from '../components/Icones'
+import { IconeAlerte, IconeCorbeille, IconeExport, IconeReglages, IconeValide } from '../components/Icones'
 import GraphiqueTemperatures from '../components/GraphiqueTemperatures'
 import AjoutEquipement from '../components/AjoutEquipement'
 
@@ -19,6 +19,7 @@ export default function Temperatures() {
   const [moments, setMoments] = useState<Record<string, Moment>>({})
   const [actions, setActions] = useState<Record<string, string>>({})
   const [jours, setJours] = useState(30)
+  const [enEdition, setEnEdition] = useState<string | null>(null)
 
   // Tous les équipements, y compris les retirés : sans eux, l'historique et le
   // registre PDF afficheraient « Équipement supprimé » à la place du nom.
@@ -66,6 +67,27 @@ export default function Temperatures() {
   const remet = async (id: string) => {
     await db.equipements.update(id, { actif: 1 })
   }
+
+  /** Effacement réel : réservé à un équipement créé par erreur. */
+  const supprimeEquipement = async (eq: Equipement) => {
+    const combien = await db.releves.where('equipementId').equals(eq.id).count()
+    if (!confirm(
+      `Supprimer définitivement « ${eq.nom} » ?
+
+`
+      + (combien > 0
+        ? `Ses ${combien} relevé(s) resteront au registre, mais sous la mention `
+          + '« Équipement supprimé ». Si tu veux garder leur nom lisible, utilise plutôt la corbeille, qui retire sans effacer.'
+        : "Aucun relevé n'y est rattaché."),
+    )) return
+    await db.equipements.delete(eq.id)
+    setEnEdition(null)
+  }
+
+  const TYPES: Array<[TypeEquipement, string]> = [
+    ['frigo', 'Frigo'], ['congelateur', 'Congélateur'],
+    ['vitrine', 'Vitrine'], ['reserve', 'Réserve'],
+  ]
 
   /**
    * Un registre HACCP se corrige, il ne se réécrit pas en douce : d'où la
@@ -133,21 +155,66 @@ ${quoi}`)) return
 
         return (
           <div key={eq.id} className="carte pile">
-            <div className="ligne-espace">
-              <div>
-                <h2>{eq.nom}</h2>
-                <span className="petit doux">Zone admise : {eq.tempMin} °C à {eq.tempMax} °C</span>
+            <div className="pile" style={{ gap: 6 }}>
+              <div className="ligne-espace">
+                <h2 style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{eq.nom}</h2>
+                <div className="ligne" style={{ flex: '0 0 auto' }}>
+                  <button type="button" className="discret" aria-label={`Modifier ${eq.nom}`}
+                    aria-expanded={enEdition === eq.id}
+                    onClick={() => setEnEdition(enEdition === eq.id ? null : eq.id)}>
+                    <IconeReglages />
+                  </button>
+                  <button type="button" className="discret" aria-label={`Retirer ${eq.nom}`}
+                    onClick={() => retire(eq.id, eq.nom)}>
+                    <IconeCorbeille />
+                  </button>
+                </div>
               </div>
-              <div className="ligne">
+              <div className="ligne" style={{ flexWrap: 'wrap' }}>
+                <span className="petit doux">Zone admise : {eq.tempMin} °C à {eq.tempMax} °C</span>
                 {dejaFaits.length > 0 && (
-                  <span className="etiquette ok"><IconeValide /> {dejaFaits.length} relevé{dejaFaits.length > 1 ? 's' : ''}</span>
+                  <span className="etiquette ok">
+                    <IconeValide /> {dejaFaits.length} relevé{dejaFaits.length > 1 ? 's' : ''}
+                  </span>
                 )}
-                <button type="button" className="discret" aria-label={`Retirer ${eq.nom}`}
-                  onClick={() => retire(eq.id, eq.nom)}>
-                  <IconeCorbeille />
-                </button>
               </div>
             </div>
+
+            {enEdition === eq.id && (
+              <div className="pile" style={{ paddingBottom: 4 }}>
+                <div>
+                  <label htmlFor={`en-${eq.id}`}>Nom</label>
+                  <input id={`en-${eq.id}`} value={eq.nom}
+                    onChange={(e) => void db.equipements.update(eq.id, { nom: e.target.value })} />
+                </div>
+                <div className="deux-champs">
+                  <div>
+                    <label htmlFor={`et-${eq.id}`}>Type</label>
+                    <select id={`et-${eq.id}`} value={eq.type}
+                      onChange={(e) => void db.equipements.update(eq.id, { type: e.target.value as TypeEquipement })}>
+                      {TYPES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                    </select>
+                  </div>
+                  <div className="deux-champs">
+                    <div>
+                      <label htmlFor={`emin-${eq.id}`}>Mini °C</label>
+                      <input id={`emin-${eq.id}`} className="mono" type="number" step="0.5"
+                        value={eq.tempMin}
+                        onChange={(e) => void db.equipements.update(eq.id, { tempMin: Number(e.target.value) })} />
+                    </div>
+                    <div>
+                      <label htmlFor={`emax-${eq.id}`}>Maxi °C</label>
+                      <input id={`emax-${eq.id}`} className="mono" type="number" step="0.5"
+                        value={eq.tempMax}
+                        onChange={(e) => void db.equipements.update(eq.id, { tempMax: Number(e.target.value) })} />
+                    </div>
+                  </div>
+                </div>
+                <button type="button" className="destructif large" onClick={() => supprimeEquipement(eq)}>
+                  <IconeCorbeille /> Supprimer définitivement
+                </button>
+              </div>
+            )}
 
             <GraphiqueTemperatures
               equipement={eq}

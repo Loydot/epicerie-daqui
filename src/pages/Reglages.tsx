@@ -1,20 +1,11 @@
 import { useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, setReglage, uid } from '../db/db'
-import type { Equipement, Frequence, TypeEquipement } from '../db/types'
 import { exporteSauvegarde } from '../lib/export'
 import EtatSynchro from '../components/EtatSynchro'
 import { IconeCorbeille, IconeExport, IconePlus, IconeValide } from '../components/Icones'
 
 const TABLES = ['produits', 'equipements', 'releves', 'receptions', 'lots', 'taches', 'nettoyages', 'operateurs', 'reglages'] as const
-
-const TYPES: Array<[TypeEquipement, string]> = [
-  ['frigo', 'Frigo'], ['congelateur', 'Congelateur'], ['vitrine', 'Vitrine'], ['reserve', 'Reserve'],
-]
-
-const FREQUENCES: Array<[Frequence, string]> = [
-  ['quotidien', 'Quotidien'], ['hebdomadaire', 'Hebdomadaire'], ['mensuel', 'Mensuel'],
-]
 
 export default function Reglages() {
   const fichierRef = useRef<HTMLInputElement>(null)
@@ -23,24 +14,6 @@ export default function Reglages() {
 
   const magasin = useLiveQuery(async () => (await db.reglages.get('magasin'))?.valeur ?? '', [], '') ?? ''
   const operateurs = useLiveQuery(() => db.operateurs.toArray(), [], []) ?? []
-  const equipements = useLiveQuery(
-    async () => (await db.equipements.toArray()).sort((a, b) => a.ordre - b.ordre), [], [],
-  ) ?? []
-  const taches = useLiveQuery(
-    async () => (await db.taches.toArray()).sort((a, b) => a.ordre - b.ordre), [], [],
-  ) ?? []
-
-  const majEquipement = (id: string, champs: Partial<Equipement>) => void db.equipements.update(id, champs)
-
-  const ajouteEquipement = () => void db.equipements.add({
-    id: uid(), nom: 'Nouvel équipement', type: 'frigo',
-    tempMin: 0, tempMax: 4, actif: 1, ordre: equipements.length + 1,
-  })
-
-  const ajouteTache = () => void db.taches.add({
-    id: uid(), nom: 'Nouvelle tâche', zone: '', frequence: 'quotidien',
-    produitUtilise: '', actif: 1, ordre: taches.length + 1,
-  })
 
   const sauvegarde = async () => {
     const donnees: Record<string, unknown[]> = {}
@@ -122,85 +95,6 @@ export default function Reglages() {
             ))}
           </div>
         )}
-      </div>
-
-      <div className="carte pile">
-        <div className="ligne-espace">
-          <h2>Équipements à surveiller</h2>
-          <button type="button" className="discret" onClick={ajouteEquipement}><IconePlus /> Ajouter</button>
-        </div>
-        {equipements.map((e) => (
-          <div key={e.id} className="pile" style={{ paddingTop: 12, borderTop: '1px solid var(--bord)' }}>
-            <div className="ligne">
-              <input className="champ" value={e.nom} onChange={(ev) => majEquipement(e.id, { nom: ev.target.value })} />
-              <button type="button" className="discret" aria-label="Supprimer"
-                onClick={() => {
-                  if (confirm(
-                    `Supprimer définitivement "${e.nom}" ?
-
-`
-                    + 'Ses relevés passés resteront au registre, mais sous la mention '
-                    + '« Équipement supprimé ». Pour le sortir de la page en gardant son nom '
-                    + "lisible, utilise plutôt « Retirer » dans l'onglet Températures.",
-                  )) void db.equipements.delete(e.id)
-                }}>
-                <IconeCorbeille />
-              </button>
-            </div>
-            <div className="deux-champs">
-              <div>
-                <label htmlFor={`ty-${e.id}`}>Type</label>
-                <select id={`ty-${e.id}`} value={e.type}
-                  onChange={(ev) => majEquipement(e.id, { type: ev.target.value as TypeEquipement })}>
-                  {TYPES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                </select>
-              </div>
-              <div className="deux-champs">
-                <div>
-                  <label htmlFor={`mi-${e.id}`}>Min °C</label>
-                  <input id={`mi-${e.id}`} className="mono" type="number" step="0.5" value={e.tempMin}
-                    onChange={(ev) => majEquipement(e.id, { tempMin: Number(ev.target.value) })} />
-                </div>
-                <div>
-                  <label htmlFor={`ma-${e.id}`}>Max °C</label>
-                  <input id={`ma-${e.id}`} className="mono" type="number" step="0.5" value={e.tempMax}
-                    onChange={(ev) => majEquipement(e.id, { tempMax: Number(ev.target.value) })} />
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="carte pile">
-        <div className="ligne-espace">
-          <h2>Plan de nettoyage</h2>
-          <button type="button" className="discret" onClick={ajouteTache}><IconePlus /> Ajouter</button>
-        </div>
-        {taches.map((t) => (
-          <div key={t.id} className="pile" style={{ paddingTop: 12, borderTop: '1px solid var(--bord)' }}>
-            <div className="ligne">
-              <input className="champ" value={t.nom} onChange={(e) => void db.taches.update(t.id, { nom: e.target.value })} />
-              <button type="button" className="discret" aria-label="Supprimer"
-                onClick={() => { if (confirm(`Supprimer la tâche "${t.nom}" ?`)) void db.taches.delete(t.id) }}>
-                <IconeCorbeille />
-              </button>
-            </div>
-            <div className="deux-champs">
-              <div>
-                <label htmlFor={`fr-${t.id}`}>Fréquence</label>
-                <select id={`fr-${t.id}`} value={t.frequence}
-                  onChange={(e) => void db.taches.update(t.id, { frequence: e.target.value as Frequence })}>
-                  {FREQUENCES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                </select>
-              </div>
-              <div>
-                <label htmlFor={`zo-${t.id}`}>Zone</label>
-                <input id={`zo-${t.id}`} value={t.zone} onChange={(e) => void db.taches.update(t.id, { zone: e.target.value })} />
-              </div>
-            </div>
-          </div>
-        ))}
       </div>
 
       <div className="carte pile">
