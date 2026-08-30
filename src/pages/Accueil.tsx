@@ -90,10 +90,15 @@ export default function Accueil() {
               <IconeTemperature className="doux" />
             </div>
             <div className="gros-chiffre">{resume.relevesFaits} / {resume.equipements}</div>
-            <span className={`etiquette ${relevesRestants === 0 ? 'ok' : 'alerte'}`}>
-              {relevesRestants === 0
-                ? <><IconeValide /> Tout est relevé</>
-                : `${relevesRestants} équipement${relevesRestants > 1 ? 's' : ''} en attente`}
+            {/* Sans équipement, « tout est relevé » serait un mensonge rassurant. */}
+            <span className={`etiquette ${
+              resume.equipements === 0 ? 'accent' : relevesRestants === 0 ? 'ok' : 'alerte'
+            }`}>
+              {resume.equipements === 0
+                ? 'Ajouter un équipement'
+                : relevesRestants === 0
+                  ? <><IconeValide /> Tout est relevé</>
+                  : `${relevesRestants} équipement${relevesRestants > 1 ? 's' : ''} en attente`}
             </span>
           </Link>
 

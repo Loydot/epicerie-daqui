@@ -5,8 +5,9 @@ import type { Equipement, Moment } from '../db/types'
 import { aujourdhui, dateHeureCourte, dateHeureFr, jourDe, nombre } from '../lib/format'
 import { ChoixOperateur, useOperateur } from '../lib/operateur'
 import { exporteTemperaturesCsv } from '../lib/export'
-import { IconeAlerte, IconeCorbeille, IconeExport, IconeTemperature, IconeValide } from '../components/Icones'
+import { IconeAlerte, IconeCorbeille, IconeExport, IconeValide } from '../components/Icones'
 import GraphiqueTemperatures from '../components/GraphiqueTemperatures'
+import AjoutEquipement from '../components/AjoutEquipement'
 
 /** Avant 15 h on considere que c'est le relevé du matin. */
 const momentParDefaut = (): Moment => (new Date().getHours() < 15 ? 'matin' : 'soir')
@@ -100,12 +101,7 @@ ${quoi}`)) return
         </div>
       )}
 
-      {equipements.length === 0 && (
-        <div className="carte vide">
-          <IconeTemperature />
-          <p>Aucun équipement. Ajoute tes frigos dans les réglages.</p>
-        </div>
-      )}
+      {equipements.length === 0 && <AjoutEquipement nombreExistant={0} premier />}
 
       {equipements.map((eq) => {
         const dejaFaits = relevesJour.filter((r) => r.equipementId === eq.id)
@@ -177,6 +173,8 @@ ${quoi}`)) return
           </div>
         )
       })}
+
+      {equipements.length > 0 && <AjoutEquipement nombreExistant={equipements.length} />}
 
       {historique.length > 0 && (
         <div className="carte">

@@ -3,7 +3,8 @@ import { db, uid } from '../db/db'
 import type { Frequence, Tache } from '../db/types'
 import { aujourdhui, dateHeureFr, moisDe, semaineDe } from '../lib/format'
 import { ChoixOperateur, useOperateur } from '../lib/operateur'
-import { IconeBalai, IconeValide } from '../components/Icones'
+import { IconeValide } from '../components/Icones'
+import AjoutTache from '../components/AjoutTache'
 
 const LIBELLES: Record<Frequence, string> = {
   quotidien: 'Chaque jour',
@@ -56,12 +57,7 @@ export default function Nettoyage() {
         </div>
       )}
 
-      {taches.length === 0 && (
-        <div className="carte vide">
-          <IconeBalai />
-          <p>Aucune tâche. Ajoute ton plan de nettoyage dans les réglages.</p>
-        </div>
-      )}
+      {taches.length === 0 && <AjoutTache nombreExistant={0} premier />}
 
       {groupes.map((freq) => {
         const duGroupe = taches.filter((t) => t.frequence === freq)
@@ -111,6 +107,8 @@ export default function Nettoyage() {
           </div>
         )
       })}
+
+      {taches.length > 0 && <AjoutTache nombreExistant={taches.length} />}
     </div>
   )
 }
