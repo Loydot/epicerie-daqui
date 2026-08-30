@@ -164,6 +164,35 @@ a { color: var(--accent); }
 .ligne-espace { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .grille { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
 
+/* Tuiles de chiffres : un libelle et une valeur, rien d'autre. En pleine largeur
+   elles occupaient un ecran de telephone a elles trois ; carrees, on les embrasse
+   d'un regard. */
+.tuiles { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); }
+.tuile {
+  display: flex; flex-direction: column; justify-content: space-between;
+  aspect-ratio: 1 / 1; padding: 10px;
+  background: var(--surface); border: 1px solid var(--bord);
+  border-radius: 10px; box-shadow: var(--ombre);
+  text-decoration: none; color: inherit; min-width: 0;
+}
+.tuile-libelle {
+  font-size: .68rem; font-weight: 650; line-height: 1.25;
+  color: var(--texte-doux); text-transform: uppercase; letter-spacing: .03em;
+}
+.tuile-valeur {
+  font-size: 1.25rem; font-weight: 700; letter-spacing: -.02em;
+  overflow: hidden; text-overflow: ellipsis;
+}
+/* Une valeur en euros peut etre longue : elle retrecit plutot que de deborder. */
+.tuile-valeur.long { font-size: 1.05rem; }
+.tuile-note { font-size: .66rem; color: var(--texte-doux); }
+
+@media (min-width: 700px) {
+  .tuiles { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; }
+  .tuile { padding: 12px; }
+  .tuile-valeur { font-size: 1.5rem; }
+}
+
 .section-titre {
   font-size: .74rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
   color: var(--texte-doux); margin: 22px 0 10px;

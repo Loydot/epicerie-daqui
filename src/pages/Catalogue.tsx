@@ -87,18 +87,27 @@ export default function Catalogue() {
         </div>
       </div>
 
-      <div className="grille">
-        <div className="carte">
-          <div className="petit doux">Références</div>
-          <div className="gros-chiffre">{nombre(total.references)}</div>
+      <div className="tuiles">
+        <div className="tuile">
+          <span className="tuile-libelle">Références</span>
+          <div>
+            <div className="tuile-valeur mono">{nombre(total.references)}</div>
+            <span className="tuile-note">au catalogue</span>
+          </div>
         </div>
-        <div className="carte">
-          <div className="petit doux">Unités en stock</div>
-          <div className="gros-chiffre">{nombre(total.unites)}</div>
+        <div className="tuile">
+          <span className="tuile-libelle">Unités</span>
+          <div>
+            <div className="tuile-valeur mono">{nombre(total.unites)}</div>
+            <span className="tuile-note">en stock</span>
+          </div>
         </div>
-        <div className="carte">
-          <div className="petit doux">Valeur du stock (prix d'achat)</div>
-          <div className="gros-chiffre">{euro(total.valeur)}</div>
+        <div className="tuile">
+          <span className="tuile-libelle">Valeur</span>
+          <div>
+            <div className="tuile-valeur mono long">{euro(total.valeur)}</div>
+            <span className="tuile-note">au prix d'achat</span>
+          </div>
         </div>
       </div>
 

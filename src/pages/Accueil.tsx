@@ -119,27 +119,30 @@ export default function Accueil() {
 
       <div>
         <div className="section-titre">Inventaire</div>
-        <div className="grille">
-          <Link to="/catalogue" className="carte" style={{ textDecoration: 'none', color: 'inherit' }}>
-            <div className="ligne-espace">
-              <span className="petit doux">Références au catalogue</span>
-              <IconeBoite className="doux" />
+        <div className="tuiles">
+          <Link to="/catalogue" className="tuile">
+            <span className="tuile-libelle">Références</span>
+            <div>
+              <div className="tuile-valeur mono">{nombre(resume.references)}</div>
+              <span className="tuile-note">{nombre(resume.unites)} unités</span>
             </div>
-            <div className="gros-chiffre">{nombre(resume.references)}</div>
-            <span className="petit doux">{nombre(resume.unites)} unités comptées</span>
           </Link>
 
-          <div className="carte">
-            <span className="petit doux">Valeur du stock</span>
-            <div className="gros-chiffre">{euro(resume.valeur)}</div>
-            <span className="petit doux">Au prix d'achat</span>
+          <div className="tuile">
+            <span className="tuile-libelle">Valeur</span>
+            <div>
+              <div className="tuile-valeur mono long">{euro(resume.valeur)}</div>
+              <span className="tuile-note">au prix d'achat</span>
+            </div>
           </div>
 
           {resume.sansPrix > 0 && (
-            <Link to="/catalogue" className="carte" style={{ textDecoration: 'none', color: 'inherit' }}>
-              <span className="petit doux">Prix de vente manquants</span>
-              <div className="gros-chiffre">{nombre(resume.sansPrix)}</div>
-              <span className="etiquette alerte">À compléter</span>
+            <Link to="/catalogue" className="tuile">
+              <span className="tuile-libelle">Prix manquants</span>
+              <div>
+                <div className="tuile-valeur mono" style={{ color: 'var(--alerte)' }}>{nombre(resume.sansPrix)}</div>
+                <span className="tuile-note">à compléter</span>
+              </div>
             </Link>
           )}
         </div>

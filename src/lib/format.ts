@@ -40,6 +40,15 @@ export function dateHeureFr(iso: string): string {
     : d.toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
+/** « 28/08 08:30 » : sans l'année, pour les listes serrées d'un téléphone. */
+export function dateHeureCourte(iso: string): string {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  return Number.isNaN(d.getTime())
+    ? '—'
+    : d.toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+}
+
 /** Nombre de jours entiers entre aujourd'hui et une date AAAA-MM-JJ. Negatif = dépassé. */
 export function joursRestants(dlc: string): number {
   if (!dlc) return Number.POSITIVE_INFINITY

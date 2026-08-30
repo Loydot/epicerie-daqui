@@ -2,10 +2,10 @@ import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, uid } from '../db/db'
 import type { Equipement, Moment } from '../db/types'
-import { aujourdhui, dateHeureFr, jourDe } from '../lib/format'
+import { aujourdhui, dateHeureCourte, dateHeureFr, jourDe, nombre } from '../lib/format'
 import { ChoixOperateur, useOperateur } from '../lib/operateur'
 import { exporteTemperaturesCsv } from '../lib/export'
-import { IconeAlerte, IconeExport, IconeTemperature, IconeValide } from '../components/Icones'
+import { IconeAlerte, IconeCorbeille, IconeExport, IconeTemperature, IconeValide } from '../components/Icones'
 import GraphiqueTemperatures from '../components/GraphiqueTemperatures'
 
 /** Avant 15 h on considere que c'est le relevé du matin. */
@@ -44,6 +44,17 @@ export default function Temperatures() {
   const nomEquipement = (id: string) =>
     equipements.find((e) => e.id === id)?.nom ?? 'Équipement supprimé'
 
+  /**
+   * Un registre HACCP se corrige, il ne se réécrit pas en douce : d'où la
+   * confirmation qui rappelle ce qu'on efface exactement.
+   */
+  const supprime = async (id: string, quoi: string) => {
+    if (!confirm(`Supprimer définitivement ce relevé ?
+
+${quoi}`)) return
+    await db.releves.delete(id)
+  }
+
   const enregistre = async (eq: Equipement) => {
     const brut = (saisies[eq.id] ?? '').replace(',', '.')
     const temp = Number(brut)
@@ -51,7 +62,7 @@ export default function Temperatures() {
     const conforme = temp >= eq.tempMin && temp <= eq.tempMax
     const action = (actions[eq.id] ?? '').trim()
     if (!conforme && !action) {
-      alert("Température hors zone : decris l'action corrective avant d'enregistrer (c'est ce que le controleur regarde).")
+      alert("Température hors zone : décris l'action corrective avant d'enregistrer (c'est ce que le contrôleur regarde).")
       return
     }
     const maintenant = new Date()
@@ -133,7 +144,7 @@ export default function Temperatures() {
               <div className="champ">
                 <label htmlFor={`t-${eq.id}`}>Température relevée (°C)</label>
                 <input id={`t-${eq.id}`} className="mono" type="number" step="0.1" inputMode="decimal"
-                  placeholder={`${eq.tempMin} a ${eq.tempMax}`}
+                  placeholder={`${eq.tempMin} à ${eq.tempMax}`}
                   value={saisies[eq.id] ?? ''}
                   onChange={(e) => setSaisies((s) => ({ ...s, [eq.id]: e.target.value }))} />
               </div>
@@ -176,27 +187,31 @@ export default function Temperatures() {
               <IconeExport /> CSV
             </button>
           </div>
-          <div className="defilable">
-            <table className="tableau">
-              <thead>
-                <tr><th>Date</th><th>Équipement</th><th className="num">Temp.</th><th>État</th><th>Par</th></tr>
-              </thead>
-              <tbody>
-                {historique.map((r) => (
-                  <tr key={r.id}>
-                    <td>{dateHeureFr(r.date)}</td>
-                    <td>{nomEquipement(r.equipementId)}</td>
-                    <td className="num mono">{r.temp} °C</td>
-                    <td>
-                      <span className={`etiquette ${r.conforme ? 'ok' : 'danger'}`}>
-                        {r.conforme ? 'Conforme' : 'Hors zone'}
-                      </span>
-                    </td>
-                    <td className="petit doux">{r.operateur || '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="liste" style={{ marginTop: 8 }}>
+            {historique.map((r) => (
+              <div key={r.id} className="item">
+                <div className="item-corps">
+                  <div className="item-nom mono">{nombre(r.temp, 1)} °C</div>
+                  <div className="petit doux" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {dateHeureCourte(r.date)} · {nomEquipement(r.equipementId)}
+                    {r.operateur && ` · ${r.operateur}`}
+                  </div>
+                </div>
+                <span className={`etiquette ${r.conforme ? 'ok' : 'danger'}`}>
+                  {r.conforme ? 'Conforme' : 'Hors zone'}
+                </span>
+                <button
+                  type="button" className="discret"
+                  aria-label={`Supprimer le relevé de ${dateHeureFr(r.date)}`}
+                  onClick={() => supprime(
+                    r.id,
+                    `${nomEquipement(r.equipementId)} — ${nombre(r.temp, 1)} °C le ${dateHeureFr(r.date)}`,
+                  )}
+                >
+                  <IconeCorbeille />
+                </button>
+              </div>
+            ))}
           </div>
         </div>
       )}

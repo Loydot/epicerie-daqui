@@ -94,11 +94,23 @@ export default function Registres() {
         </div>
 
         {compte && (
-          <div className="grille">
-            <div className="carte"><div className="petit doux">Relevés de température</div><div className="gros-chiffre">{nombre(compte.releves)}</div></div>
-            <div className="carte"><div className="petit doux">Réceptions</div><div className="gros-chiffre">{nombre(compte.receptions)}</div></div>
-            <div className="carte"><div className="petit doux">Lots suivis</div><div className="gros-chiffre">{nombre(compte.lots)}</div></div>
-            <div className="carte"><div className="petit doux">Tâches de nettoyage</div><div className="gros-chiffre">{nombre(compte.nettoyages)}</div></div>
+          <div className="tuiles">
+            <div className="tuile">
+              <span className="tuile-libelle">Températures</span>
+              <div className="tuile-valeur mono">{nombre(compte.releves)}</div>
+            </div>
+            <div className="tuile">
+              <span className="tuile-libelle">Réceptions</span>
+              <div className="tuile-valeur mono">{nombre(compte.receptions)}</div>
+            </div>
+            <div className="tuile">
+              <span className="tuile-libelle">Lots suivis</span>
+              <div className="tuile-valeur mono">{nombre(compte.lots)}</div>
+            </div>
+            <div className="tuile">
+              <span className="tuile-libelle">Nettoyage</span>
+              <div className="tuile-valeur mono">{nombre(compte.nettoyages)}</div>
+            </div>
           </div>
         )}
 
