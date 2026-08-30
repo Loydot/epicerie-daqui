@@ -135,6 +135,46 @@ create table if not exists reglages (
 -- Ajout après coup pour les bases déjà créées.
 alter table produits add column if not exists section text not null default 'nonclasse';
 
+create table if not exists clients (
+  id uuid primary key,
+  nom text not null default '',
+  telephone text not null default '',
+  note text not null default '',
+  cree_le timestamptz not null default now(),
+  maj_le timestamptz not null default now(),
+  supprime boolean not null default false
+);
+
+create table if not exists commandes (
+  id uuid primary key,
+  client_id uuid not null,
+  date timestamptz not null,
+  date_retrait text not null default '',
+  statut text not null default 'a_commander',
+  note text not null default '',
+  operateur text not null default '',
+  retire_le text not null default '',
+  maj_le timestamptz not null default now(),
+  supprime boolean not null default false
+);
+
+create table if not exists lignes_commande (
+  id uuid primary key,
+  commande_id uuid not null,
+  produit_id text not null default '',
+  libelle text not null default '',
+  quantite numeric not null default 1,
+  prix_unitaire numeric,
+  maj_le timestamptz not null default now(),
+  supprime boolean not null default false
+);
+
+create index if not exists commandes_client on commandes (client_id);
+create index if not exists lignes_commande_commande on lignes_commande (commande_id);
+create index if not exists clients_maj_le on clients (maj_le);
+create index if not exists commandes_maj_le on commandes (maj_le);
+create index if not exists lignes_commande_maj_le on lignes_commande (maj_le);
+
 -- Un même code-barres ne doit exister qu'une fois, sauf parmi les fiches effacées.
 create unique index if not exists produits_ean_unique
   on produits (ean) where not supprime;
@@ -158,7 +198,8 @@ declare t text;
 begin
   foreach t in array array[
     'produits', 'equipements', 'releves', 'receptions', 'lots',
-    'taches', 'nettoyages', 'operateurs', 'reglages'
+    'taches', 'nettoyages', 'operateurs', 'reglages',
+    'clients', 'commandes', 'lignes_commande'
   ] loop
     execute format('alter table %I enable row level security', t);
     execute format('drop policy if exists "compte du magasin" on %I', t);
@@ -198,7 +239,8 @@ declare t text;
 begin
   foreach t in array array[
     'produits', 'equipements', 'releves', 'receptions', 'lots',
-    'taches', 'nettoyages', 'operateurs', 'reglages'
+    'taches', 'nettoyages', 'operateurs', 'reglages',
+    'clients', 'commandes', 'lignes_commande'
   ] loop
     execute format('drop trigger if exists %I on %I', 'maj_le_' || t, t);
     execute format(
@@ -215,7 +257,8 @@ declare t text;
 begin
   foreach t in array array[
     'produits', 'equipements', 'releves', 'receptions', 'lots',
-    'taches', 'nettoyages', 'operateurs', 'reglages'
+    'taches', 'nettoyages', 'operateurs', 'reglages',
+    'clients', 'commandes', 'lignes_commande'
   ] loop
     if not exists (
       select 1 from pg_publication_tables

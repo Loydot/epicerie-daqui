@@ -147,6 +147,48 @@ export interface Operateur extends Synchronisable {
   actif: number
 }
 
+/* ------------------------------ commandes clients ------------------------------ */
+
+export interface Client extends Synchronisable {
+  id: Id
+  nom: string
+  telephone: string
+  note: string
+  creeLe: string
+}
+
+/**
+ * Cycle de vie d'une commande prise au téléphone.
+ * Le stock n'est débité qu'au passage en « retiree » : c'est le moment où la
+ * marchandise sort réellement du magasin.
+ */
+export type StatutCommande = 'a_commander' | 'commandee' | 'arrivee' | 'retiree' | 'annulee'
+
+export interface Commande extends Synchronisable {
+  id: Id
+  clientId: Id
+  /** Prise de commande, ISO 8601. */
+  date: string
+  /** Retrait souhaité, AAAA-MM-JJ. Vide si le client n'a rien précisé. */
+  dateRetrait: string
+  statut: StatutCommande
+  note: string
+  operateur: string
+  /** Horodatage du retrait, qui a déclenché la sortie de stock. */
+  retireLe: string
+}
+
+export interface LigneCommande extends Synchronisable {
+  id: Id
+  commandeId: Id
+  /** Vide pour un article hors catalogue, saisi à la volée au téléphone. */
+  produitId: Id
+  libelle: string
+  quantite: number
+  /** Prix de vente au moment de la commande, figé pour que le bon reste juste. */
+  prixUnitaire: number | null
+}
+
 export interface Reglage extends Synchronisable {
   cle: string
   valeur: string

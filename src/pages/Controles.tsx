@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/db'
 import { aujourdhui, joursRestants } from '../lib/format'
-import { IconeBalai, IconeCalendrier, IconeCamion, IconeTemperature } from '../components/Icones'
+import { IconeBalai, IconeCalendrier, IconeCamion, IconeRegistre, IconeTemperature } from '../components/Icones'
 
 export default function Controles() {
   const etat = useLiveQuery(async () => {
@@ -46,6 +46,11 @@ export default function Controles() {
     {
       to: '/nettoyage', titre: 'Plan de nettoyage', Icone: IconeBalai,
       texte: 'Cocher les tâches quotidiennes, hebdomadaires et mensuelles.',
+      alerte: null,
+    },
+    {
+      to: '/registres', titre: 'Registres', Icone: IconeRegistre,
+      texte: "Le PDF des quatre registres, à présenter en cas de contrôle.",
       alerte: null,
     },
   ]

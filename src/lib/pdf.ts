@@ -4,22 +4,33 @@ import JsBarcode from 'jsbarcode'
 import type { Lot, Nettoyage, Produit, Reception, Releve, Tache } from '../db/types'
 import { dateFr, dateHeureFr, euro, jourDe, marge, nombre } from './format'
 import { nomSection } from './sections'
+import { logoPourPdf, RAPPORT } from './logo'
+import type { Commande, LigneCommande } from '../db/types'
+import { nomStatut, totalLignes } from './commandes'
 
 const MARGE = 14
 const GRIS: [number, number, number] = [92, 102, 117]
 const ACCENT: [number, number, number] = [15, 111, 212]
 
 /** En-tete commun a tous les documents : identifie l'etablissement pour un contrôle. */
-function entete(doc: jsPDF, titre: string, magasin: string, sousTitre = ''): number {
+function entete(doc: jsPDF, titre: string, magasin: string, sousTitre = '', logo?: string | null): number {
   doc.setFillColor(...ACCENT)
   doc.rect(0, 0, doc.internal.pageSize.getWidth(), 3, 'F')
 
+  // Le logo pousse le texte vers la droite quand il est présent.
+  let x = MARGE
+  if (logo) {
+    const h = 18
+    doc.addImage(logo, 'JPEG', MARGE, 9, h * RAPPORT, h)
+    x = MARGE + h * RAPPORT + 6
+  }
+
   doc.setFont('helvetica', 'bold').setFontSize(16).setTextColor(20, 24, 32)
-  doc.text(titre, MARGE, 20)
+  doc.text(titre, x, 20)
 
   doc.setFont('helvetica', 'normal').setFontSize(10).setTextColor(...GRIS)
-  doc.text(magasin || 'Établissement', MARGE, 27)
-  if (sousTitre) doc.text(sousTitre, MARGE, 33)
+  doc.text(magasin || 'Établissement', x, 27)
+  if (sousTitre) doc.text(sousTitre, x, 33)
 
   doc.setFontSize(8)
   doc.text(
@@ -67,9 +78,10 @@ function codeBarresPng(ean: string, largeur = 2, hauteur = 40): string | null {
 
 /* ------------------------- Fiche produit ------------------------- */
 
-export function ficheProduitPdf(p: Produit, magasin: string): void {
+export async function ficheProduitPdf(p: Produit, magasin: string): Promise<void> {
   const doc = new jsPDF()
-  let y = entete(doc, p.nom || 'Fiche produit', magasin, [p.marque, p.contenance].filter(Boolean).join(' · '))
+  const logo = await logoPourPdf()
+  let y = entete(doc, p.nom || 'Fiche produit', magasin, [p.marque, p.contenance].filter(Boolean).join(' · '), logo)
 
   const png = codeBarresPng(p.ean)
   if (png) doc.addImage(png, 'PNG', doc.internal.pageSize.getWidth() - MARGE - 46, y - 12, 46, 22)
@@ -116,8 +128,9 @@ export function ficheProduitPdf(p: Produit, magasin: string): void {
 /* ------------------------- Étiquettes de rayon ------------------------- */
 
 /** Planche A4 de 3 x 8 étiquettes prix, a découper. */
-export function etiquettesPdf(produits: Produit[], magasin: string): void {
+export async function etiquettesPdf(produits: Produit[], magasin: string): Promise<void> {
   const doc = new jsPDF()
+  const logo = await logoPourPdf()
   const COLS = 3
   const RANGS = 8
   const L = (210 - MARGE * 2) / COLS
@@ -137,17 +150,21 @@ export function etiquettesPdf(produits: Produit[], magasin: string): void {
     doc.setDrawColor(215, 220, 228).setLineWidth(0.2)
     doc.rect(x, y, L - 2, H - 2)
 
-    doc.setFont('helvetica', 'bold').setFontSize(9).setTextColor(20)
-    doc.text(doc.splitTextToSize(p.nom, L - 8).slice(0, 2), x + 4, y + 7)
+    // Tout doit tenir dans les 31 mm utiles : le code-barres débordait sur la
+    // rangée suivante dans la version précédente.
+    if (logo) doc.addImage(logo, 'JPEG', x + L - 6 - 5 * RAPPORT, y + 2.5, 5 * RAPPORT, 5)
 
-    doc.setFont('helvetica', 'normal').setFontSize(7).setTextColor(...GRIS)
-    doc.text([p.marque, p.contenance].filter(Boolean).join(' · ').slice(0, 30), x + 4, y + 16)
+    doc.setFont('helvetica', 'bold').setFontSize(8).setTextColor(20)
+    doc.text(doc.splitTextToSize(p.nom, L - 10 - 5 * RAPPORT).slice(0, 2), x + 4, y + 6)
 
-    doc.setFont('helvetica', 'bold').setFontSize(17).setTextColor(...ACCENT)
-    doc.text(euro(p.prixVente), x + 4, y + 26)
+    doc.setFont('helvetica', 'normal').setFontSize(6.5).setTextColor(...GRIS)
+    doc.text([p.marque, p.contenance].filter(Boolean).join(' · ').slice(0, 34), x + 4, y + 15)
+
+    doc.setFont('helvetica', 'bold').setFontSize(14).setTextColor(...ACCENT)
+    doc.text(euro(p.prixVente), x + 4, y + 23)
 
     const png = codeBarresPng(p.ean, 1.4, 26)
-    if (png) doc.addImage(png, 'PNG', x + 4, y + 28, L - 12, 11)
+    if (png) doc.addImage(png, 'PNG', x + 4, y + 25, L - 12, 6)
   })
 
   doc.save(`etiquettes-${jourDe()}.pdf`)
@@ -168,10 +185,11 @@ export interface DonneesRegistre {
   taches: Tache[]
 }
 
-export function registrePdf(d: DonneesRegistre): void {
+export async function registrePdf(d: DonneesRegistre): Promise<void> {
   const doc = new jsPDF()
+  const logo = await logoPourPdf()
   const periode = `Période du ${dateFr(d.du)} au ${dateFr(d.au)}`
-  const y = entete(doc, 'Registre HACCP', d.magasin, periode)
+  const y = entete(doc, 'Registre HACCP', d.magasin, periode, logo)
 
   const section = (titre: string, tete: string[], corps: unknown[][], premiere = false) => {
     const depart = premiere
@@ -227,4 +245,85 @@ export function registrePdf(d: DonneesRegistre): void {
 
   piedDePage(doc)
   doc.save(`registre-haccp-${d.du}_${d.au}.pdf`)
+}
+
+/* ------------------------- Bon de commande ------------------------- */
+
+export interface DonneesBon {
+  magasin: string
+  client: { nom: string; telephone: string }
+  commande: Commande
+  lignes: LigneCommande[]
+}
+
+/**
+ * Le bon que l'on garde au magasin et que l'on remet au client.
+ *
+ * Il porte les prix connus au moment de la prise de commande : si un tarif change
+ * ensuite, le bon déjà imprimé reste cohérent avec ce qui a été annoncé au téléphone.
+ */
+export async function bonDeCommandePdf(d: DonneesBon): Promise<void> {
+  const doc = new jsPDF()
+  const logo = await logoPourPdf()
+  const y = entete(
+    doc, 'Bon de commande', d.magasin,
+    `Commande du ${dateFr(d.commande.date.slice(0, 10))}`, logo,
+  )
+
+  doc.setFont('helvetica', 'bold').setFontSize(11).setTextColor(20)
+  doc.text(d.client.nom || 'Client', MARGE, y + 8)
+  doc.setFont('helvetica', 'normal').setFontSize(10).setTextColor(...GRIS)
+  if (d.client.telephone) doc.text(d.client.telephone, MARGE, y + 14)
+
+  const droite = doc.internal.pageSize.getWidth() - MARGE
+  doc.text(`État : ${nomStatut(d.commande.statut)}`, droite, y + 8, { align: 'right' })
+  if (d.commande.dateRetrait) {
+    doc.text(`Retrait souhaité : ${dateFr(d.commande.dateRetrait)}`, droite, y + 14, { align: 'right' })
+  }
+
+  const total = totalLignes(d.lignes)
+  autoTable(doc, {
+    ...styleTable,
+    startY: y + 22,
+    head: [['Article', 'Qté', 'Prix unitaire', 'Total']],
+    columnStyles: {
+      1: { cellWidth: 18, halign: 'right' },
+      2: { cellWidth: 30, halign: 'right' },
+      3: { cellWidth: 30, halign: 'right' },
+    },
+    body: d.lignes.map((l) => [
+      l.libelle,
+      nombre(l.quantite),
+      l.prixUnitaire == null ? 'à définir' : euro(l.prixUnitaire),
+      l.prixUnitaire == null ? '—' : euro(l.quantite * l.prixUnitaire),
+    ]),
+    foot: [['Total', '', '', euro(total)]],
+    footStyles: { fillColor: [238, 241, 245], textColor: 20, fontStyle: 'bold', halign: 'right' },
+  })
+
+  let fin = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 12
+
+  const sansPrix = d.lignes.filter((l) => l.prixUnitaire == null).length
+  if (sansPrix > 0) {
+    doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(...GRIS)
+    doc.text(
+      `${sansPrix} article(s) sans prix : le total ci-dessus est incomplet.`,
+      MARGE, fin,
+    )
+    fin += 8
+  }
+
+  if (d.commande.note) {
+    doc.setFont('helvetica', 'bold').setFontSize(10).setTextColor(20)
+    doc.text('Note', MARGE, fin)
+    doc.setFont('helvetica', 'normal').setTextColor(...GRIS)
+    doc.text(doc.splitTextToSize(d.commande.note, 180), MARGE, fin + 6)
+    fin += 18
+  }
+
+  doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(...GRIS)
+  doc.text('Commande prise par téléphone. Prix indicatifs, sous réserve de disponibilité.', MARGE, fin)
+
+  piedDePage(doc)
+  doc.save(`bon-de-commande-${(d.client.nom || 'client').replace(/[^a-zA-Z0-9]+/g, '-').toLowerCase()}-${jourDe()}.pdf`)
 }

@@ -16,7 +16,19 @@ import { supabase } from './supabase'
 const CLE_PRIMAIRE: Record<TableSynchronisee, string> = {
   produits: 'id', equipements: 'id', releves: 'id', receptions: 'id', lots: 'id',
   taches: 'id', nettoyages: 'id', operateurs: 'id', reglages: 'cle',
+  clients: 'id', commandes: 'id', lignesCommande: 'id',
 }
+
+/**
+ * Postgres n'aime pas le camelCase : une table « lignesCommande » devrait être
+ * citée entre guillemets partout. Elle s'appelle donc « lignes_commande » côté
+ * serveur, et seule cette correspondance le sait.
+ */
+const TABLE_DISTANTE: Partial<Record<TableSynchronisee, string>> = {
+  lignesCommande: 'lignes_commande',
+}
+
+const distante = (nom: TableSynchronisee): string => TABLE_DISTANTE[nom] ?? nom
 
 /** Les curseurs sont propres à chaque appareil : ils ne se synchronisent pas. */
 const cleCurseur = (table: string) => `epicerie-curseur-${table}`
@@ -81,7 +93,7 @@ async function envoie(): Promise<number> {
     if (!aEnvoyer.length) continue
 
     const { error } = await supabase
-      .from(nom)
+      .from(distante(nom))
       .upsert(aEnvoyer.map((l) => versServeur(l as Record<string, unknown>)), {
         onConflict: CLE_PRIMAIRE[nom],
       })
@@ -114,7 +126,7 @@ async function envoieLesSuppressions(): Promise<number> {
     // On met à jour sans insérer : si la ligne n'a jamais atteint le serveur,
     // il n'y a rien à effacer et rien à créer.
     const { error } = await supabase
-      .from(nom)
+      .from(distante(nom))
       .update({ supprime: true })
       .eq(CLE_PRIMAIRE[nom], pierre.id)
     if (error) throw new Error(`suppression ${nom} : ${error.message}`)
@@ -133,7 +145,7 @@ async function recoit(): Promise<number> {
   for (const nom of TABLES_SYNCHRONISEES) {
     const depuis = litCurseur(nom)
     const { data, error } = await supabase
-      .from(nom)
+      .from(distante(nom))
       .select('*')
       .gt('maj_le', depuis)
       .order('maj_le', { ascending: true })
@@ -146,9 +158,9 @@ async function recoit(): Promise<number> {
 
     await pendantApplicationDuServeur(async () => {
       await db.transaction('rw', table, async () => {
-        for (const distante of data as Array<Record<string, unknown>>) {
-          const identifiant = distante[cle] as string
-          if (distante.supprime === true) {
+        for (const ligneDistante of data as Array<Record<string, unknown>>) {
+          const identifiant = ligneDistante[cle] as string
+          if (ligneDistante.supprime === true) {
             await table.delete(identifiant)
             continue
           }
@@ -156,7 +168,7 @@ async function recoit(): Promise<number> {
           // Une modification locale pas encore partie est plus récente que ce
           // que le serveur connaît : on la garde, elle partira au prochain envoi.
           if (locale?.aSynchroniser === 1) continue
-          await table.put(versLocal(distante))
+          await table.put(versLocal(ligneDistante))
         }
       })
     })
@@ -229,7 +241,7 @@ export function demarreLaSynchronisation(
 
   const canal = supabase.channel('epicerie-changements')
   for (const nom of TABLES_SYNCHRONISEES) {
-    canal.on('postgres_changes', { event: '*', schema: 'public', table: nom }, lanceBientot)
+    canal.on('postgres_changes', { event: '*', schema: 'public', table: distante(nom) }, lanceBientot)
   }
   canal.subscribe()
 

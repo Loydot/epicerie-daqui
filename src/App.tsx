@@ -11,6 +11,8 @@ import Receptions from './pages/Receptions'
 import Dlc from './pages/Dlc'
 import Nettoyage from './pages/Nettoyage'
 import Registres from './pages/Registres'
+import Commandes from './pages/Commandes'
+import CommandeDetail from './pages/CommandeDetail'
 import Reglages from './pages/Reglages'
 import Connexion from './components/Connexion'
 import { amorceSiVide } from './db/seed'
@@ -59,6 +61,8 @@ export default function App() {
           <Route path="dlc" element={<Dlc />} />
           <Route path="nettoyage" element={<Nettoyage />} />
           <Route path="registres" element={<Registres />} />
+          <Route path="commandes" element={<Commandes />} />
+          <Route path="commande/:id" element={<CommandeDetail />} />
           <Route path="reglages" element={<Reglages />} />
           <Route path="*" element={<Accueil />} />
         </Route>

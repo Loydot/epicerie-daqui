@@ -6,13 +6,14 @@ import {
   IconeAccueil, IconeCatalogue, IconeRegistre, IconeReglages, IconeRetour,
   IconeScan, IconeTemperature,
 } from './Icones'
+import Logo from './Logo'
 
 const ONGLETS = [
   { to: '/', libelle: 'Accueil', Icone: IconeAccueil, exact: true },
   { to: '/scan', libelle: 'Scanner', Icone: IconeScan },
   { to: '/catalogue', libelle: 'Catalogue', Icone: IconeCatalogue },
   { to: '/controles', libelle: 'Contrôles', Icone: IconeTemperature, alertes: true },
-  { to: '/registres', libelle: 'Registres', Icone: IconeRegistre },
+  { to: '/commandes', libelle: 'Commandes', Icone: IconeRegistre },
 ]
 
 /** Nombre de points rouges a afficher sur l'onglet Contrôles. */
@@ -42,6 +43,8 @@ const TITRES: Array<[RegExp, string]> = [
   [/^\/dlc/, 'Dates limites'],
   [/^\/nettoyage/, 'Plan de nettoyage'],
   [/^\/registres/, 'Registres'],
+  [/^\/commandes$/, 'Commandes'],
+  [/^\/commande\//, 'Commande'],
   [/^\/reglages/, 'Réglages'],
 ]
 
@@ -67,6 +70,7 @@ export default function Layout() {
 
       <div className="colonne">
         <header className="entete">
+          <Logo hauteur={30} />
           {!racine && (
             <button type="button" className="discret" onClick={() => navigate(-1)} aria-label="Retour">
               <IconeRetour />

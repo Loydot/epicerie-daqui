@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { IconeAlerte } from './Icones'
+import Logo from './Logo'
 
 interface Props {
   surConnexion: () => void
@@ -46,10 +47,9 @@ export default function Connexion({ surConnexion }: Props) {
   return (
     <div style={{ minHeight: '100dvh', display: 'grid', placeItems: 'center', padding: 20 }}>
       <form className="carte pile" style={{ width: '100%', maxWidth: 360 }} onSubmit={valide}>
-        <div style={{ textAlign: 'center' }}>
-          <img src="./favicon.svg" alt="" width={52} height={52} style={{ borderRadius: 12 }} />
-          <h1 style={{ marginTop: 10 }}>Épicerie</h1>
-          <p className="petit doux" style={{ marginTop: 4 }}>Scan &amp; registres HACCP</p>
+        <div style={{ display: 'grid', justifyItems: 'center', gap: 6 }}>
+          <Logo hauteur={96} />
+          <p className="petit doux">Inventaire &amp; registres HACCP</p>
         </div>
 
         <div>

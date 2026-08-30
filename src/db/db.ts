@@ -1,12 +1,14 @@
 import Dexie, { type EntityTable, type Table } from 'dexie'
 import type {
-  Equipement, Lot, Nettoyage, Operateur, Produit, Reception, Reglage, Releve, Suppression, Tache,
+  Client, Commande, Equipement, LigneCommande, Lot, Nettoyage, Operateur, Produit,
+  Reception, Reglage, Releve, Suppression, Tache,
 } from './types'
 
 /** Les tables qui font l'objet d'une synchronisation. */
 export const TABLES_SYNCHRONISEES = [
   'produits', 'equipements', 'releves', 'receptions', 'lots',
   'taches', 'nettoyages', 'operateurs', 'reglages',
+  'clients', 'commandes', 'lignesCommande',
 ] as const
 
 export type TableSynchronisee = typeof TABLES_SYNCHRONISEES[number]
@@ -37,6 +39,9 @@ class HaccpDb extends Dexie {
   nettoyages!: EntityTable<Nettoyage, 'id'>
   operateurs!: EntityTable<Operateur, 'id'>
   reglages!: EntityTable<Reglage, 'cle'>
+  clients!: EntityTable<Client, 'id'>
+  commandes!: EntityTable<Commande, 'id'>
+  lignesCommande!: EntityTable<LigneCommande, 'id'>
   suppressions!: EntityTable<Suppression, 'id'>
 
   constructor() {
@@ -93,6 +98,13 @@ class HaccpDb extends Dexie {
         // Les fiches déjà saisies héritent d'une proposition, corrigeable ensuite.
         p.section ??= devineSection(p.rayon as string, p.nom as string)
       })
+    })
+
+    // v5 : commandes clients prises au téléphone.
+    this.version(5).stores({
+      clients: 'id, nom, telephone, aSynchroniser',
+      commandes: 'id, clientId, statut, date, dateRetrait, aSynchroniser',
+      lignesCommande: 'id, commandeId, produitId, aSynchroniser',
     })
 
     this.brancheLesCrochets()
