@@ -134,7 +134,16 @@ export default function Reglages() {
             <div className="ligne">
               <input className="champ" value={e.nom} onChange={(ev) => majEquipement(e.id, { nom: ev.target.value })} />
               <button type="button" className="discret" aria-label="Supprimer"
-                onClick={() => { if (confirm(`Supprimer "${e.nom}" ? Les relevés passes sont conservés.`)) void db.equipements.delete(e.id) }}>
+                onClick={() => {
+                  if (confirm(
+                    `Supprimer définitivement "${e.nom}" ?
+
+`
+                    + 'Ses relevés passés resteront au registre, mais sous la mention '
+                    + '« Équipement supprimé ». Pour le sortir de la page en gardant son nom '
+                    + "lisible, utilise plutôt « Retirer » dans l'onglet Températures.",
+                  )) void db.equipements.delete(e.id)
+                }}>
                 <IconeCorbeille />
               </button>
             </div>

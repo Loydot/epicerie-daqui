@@ -20,10 +20,14 @@ export default function Temperatures() {
   const [actions, setActions] = useState<Record<string, string>>({})
   const [jours, setJours] = useState(30)
 
-  const equipements = useLiveQuery(
-    async () => (await db.equipements.toArray()).filter((e) => e.actif === 1).sort((a, b) => a.ordre - b.ordre),
+  // Tous les équipements, y compris les retirés : sans eux, l'historique et le
+  // registre PDF afficheraient « Équipement supprimé » à la place du nom.
+  const tousEquipements = useLiveQuery(
+    async () => (await db.equipements.toArray()).sort((a, b) => a.ordre - b.ordre),
     [], [],
   ) ?? []
+  const equipements = tousEquipements.filter((e) => e.actif === 1)
+  const retires = tousEquipements.filter((e) => e.actif !== 1)
 
   const relevesJour = useLiveQuery(() => db.releves.where('jour').equals(jour).toArray(), [jour], []) ?? []
 
@@ -43,7 +47,25 @@ export default function Temperatures() {
   ) ?? []
 
   const nomEquipement = (id: string) =>
-    equipements.find((e) => e.id === id)?.nom ?? 'Équipement supprimé'
+    tousEquipements.find((e) => e.id === id)?.nom ?? 'Équipement supprimé'
+
+  /**
+   * Retirer plutôt qu'effacer : les relevés déjà faits restent au registre avec
+   * le nom de leur équipement, et on peut le remettre quand on veut.
+   */
+  const retire = async (id: string, nom: string) => {
+    if (!confirm(
+      `Retirer « ${nom} » de la page ?
+
+`
+      + 'Ses relevés passés restent au registre, et tu peux le remettre à tout moment.',
+    )) return
+    await db.equipements.update(id, { actif: 0 })
+  }
+
+  const remet = async (id: string) => {
+    await db.equipements.update(id, { actif: 1 })
+  }
 
   /**
    * Un registre HACCP se corrige, il ne se réécrit pas en douce : d'où la
@@ -116,9 +138,15 @@ ${quoi}`)) return
                 <h2>{eq.nom}</h2>
                 <span className="petit doux">Zone admise : {eq.tempMin} °C à {eq.tempMax} °C</span>
               </div>
-              {dejaFaits.length > 0 && (
-                <span className="etiquette ok"><IconeValide /> {dejaFaits.length} relevé{dejaFaits.length > 1 ? 's' : ''}</span>
-              )}
+              <div className="ligne">
+                {dejaFaits.length > 0 && (
+                  <span className="etiquette ok"><IconeValide /> {dejaFaits.length} relevé{dejaFaits.length > 1 ? 's' : ''}</span>
+                )}
+                <button type="button" className="discret" aria-label={`Retirer ${eq.nom}`}
+                  onClick={() => retire(eq.id, eq.nom)}>
+                  <IconeCorbeille />
+                </button>
+              </div>
             </div>
 
             <GraphiqueTemperatures
@@ -130,7 +158,7 @@ ${quoi}`)) return
               <div className="ligne petit doux" style={{ flexWrap: 'wrap' }}>
                 {dejaFaits.map((r) => (
                   <span key={r.id} className={`etiquette ${r.conforme ? 'ok' : 'danger'}`}>
-                    {r.moment} : {r.temp} °C
+                    {r.moment} : {nombre(r.temp, 1)} °C
                   </span>
                 ))}
               </div>
@@ -174,7 +202,27 @@ ${quoi}`)) return
         )
       })}
 
-      {equipements.length > 0 && <AjoutEquipement nombreExistant={equipements.length} />}
+      {equipements.length > 0 && <AjoutEquipement nombreExistant={tousEquipements.length} />}
+
+      {retires.length > 0 && (
+        <div className="carte">
+          <h2>Équipements retirés</h2>
+          <p className="petit doux" style={{ marginTop: 4 }}>
+            Ils ne sont plus à relever, mais leurs relevés passés restent au registre.
+          </p>
+          <div className="liste" style={{ marginTop: 8 }}>
+            {retires.map((eq) => (
+              <div key={eq.id} className="item">
+                <div className="item-corps">
+                  <div className="item-nom">{eq.nom}</div>
+                  <div className="petit doux">{eq.tempMin} °C à {eq.tempMax} °C</div>
+                </div>
+                <button type="button" onClick={() => remet(eq.id)}>Remettre</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {historique.length > 0 && (
         <div className="carte">
