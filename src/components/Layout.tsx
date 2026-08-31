@@ -70,7 +70,7 @@ export default function Layout() {
 
       <div className="colonne">
         <header className="entete">
-          <Logo hauteur={30} />
+          <Logo hauteur={22} />
           {!racine && (
             <button type="button" className="discret" onClick={() => navigate(-1)} aria-label="Retour">
               <IconeRetour />

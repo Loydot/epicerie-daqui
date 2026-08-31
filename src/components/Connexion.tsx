@@ -48,7 +48,7 @@ export default function Connexion({ surConnexion }: Props) {
     <div style={{ minHeight: '100dvh', display: 'grid', placeItems: 'center', padding: 20 }}>
       <form className="carte pile" style={{ width: '100%', maxWidth: 360 }} onSubmit={valide}>
         <div style={{ display: 'grid', justifyItems: 'center', gap: 6 }}>
-          <Logo hauteur={96} />
+          <Logo hauteur={72} />
           <p className="petit doux">Inventaire &amp; registres HACCP</p>
         </div>
 

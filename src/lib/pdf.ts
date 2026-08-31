@@ -9,6 +9,10 @@ import type { Commande, LigneCommande } from '../db/types'
 import { motRemise, nomStatut, totalLignes } from './commandes'
 
 const MARGE = 14
+
+/** Hauteurs du logo, en millimètres. Les deux seuls nombres à toucher pour le redimensionner. */
+const LOGO_ENTETE = 54
+const LOGO_ETIQUETTE = 15
 const GRIS: [number, number, number] = [92, 102, 117]
 const ACCENT: [number, number, number] = [15, 111, 212]
 
@@ -21,7 +25,7 @@ function entete(doc: jsPDF, titre: string, magasin: string, sousTitre = '', logo
   let x = MARGE
   let bas = 0
   if (logo) {
-    const h = 54
+    const h = LOGO_ENTETE
     doc.addImage(logo, 'JPEG', MARGE, 9, h * RAPPORT, h)
     x = MARGE + h * RAPPORT + 8
     bas = 9 + h + 8
@@ -155,9 +159,10 @@ export async function etiquettesPdf(produits: Produit[], magasin: string): Promi
 
     // Le logo passe de 5 à 15 mm : il ne tient plus dans un coin, la mise en
     // page s'organise donc autour de lui. Tout reste dans les 31 mm utiles.
-    const LOGO_H = 15
-    const colonne = logo ? x + 4 + LOGO_H * RAPPORT + 4 : x + 4
-    if (logo) doc.addImage(logo, 'JPEG', x + 4, y + 2.5, LOGO_H * RAPPORT, LOGO_H)
+    const colonne = logo ? x + 4 + LOGO_ETIQUETTE * RAPPORT + 4 : x + 4
+    if (logo) {
+      doc.addImage(logo, 'JPEG', x + 4, y + 2.5, LOGO_ETIQUETTE * RAPPORT, LOGO_ETIQUETTE)
+    }
 
     doc.setFont('helvetica', 'bold').setFontSize(8).setTextColor(20)
     doc.text(
