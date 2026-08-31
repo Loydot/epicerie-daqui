@@ -19,10 +19,12 @@ function entete(doc: jsPDF, titre: string, magasin: string, sousTitre = '', logo
 
   // Le logo pousse le texte vers la droite quand il est présent.
   let x = MARGE
+  let bas = 0
   if (logo) {
-    const h = 18
+    const h = 54
     doc.addImage(logo, 'JPEG', MARGE, 9, h * RAPPORT, h)
-    x = MARGE + h * RAPPORT + 6
+    x = MARGE + h * RAPPORT + 8
+    bas = 9 + h + 8
   }
 
   doc.setFont('helvetica', 'bold').setFontSize(16).setTextColor(20, 24, 32)
@@ -37,7 +39,8 @@ function entete(doc: jsPDF, titre: string, magasin: string, sousTitre = '', logo
     `Édité le ${dateHeureFr(new Date().toISOString())}`,
     doc.internal.pageSize.getWidth() - MARGE, 20, { align: 'right' },
   )
-  return sousTitre ? 40 : 34
+  // Le contenu commence sous le plus bas des deux : le texte ou le logo.
+  return Math.max(sousTitre ? 40 : 34, bas)
 }
 
 function piedDePage(doc: jsPDF): void {
@@ -150,21 +153,29 @@ export async function etiquettesPdf(produits: Produit[], magasin: string): Promi
     doc.setDrawColor(215, 220, 228).setLineWidth(0.2)
     doc.rect(x, y, L - 2, H - 2)
 
-    // Tout doit tenir dans les 31 mm utiles : le code-barres débordait sur la
-    // rangée suivante dans la version précédente.
-    if (logo) doc.addImage(logo, 'JPEG', x + L - 6 - 5 * RAPPORT, y + 2.5, 5 * RAPPORT, 5)
+    // Le logo passe de 5 à 15 mm : il ne tient plus dans un coin, la mise en
+    // page s'organise donc autour de lui. Tout reste dans les 31 mm utiles.
+    const LOGO_H = 15
+    const colonne = logo ? x + 4 + LOGO_H * RAPPORT + 4 : x + 4
+    if (logo) doc.addImage(logo, 'JPEG', x + 4, y + 2.5, LOGO_H * RAPPORT, LOGO_H)
 
     doc.setFont('helvetica', 'bold').setFontSize(8).setTextColor(20)
-    doc.text(doc.splitTextToSize(p.nom, L - 10 - 5 * RAPPORT).slice(0, 2), x + 4, y + 6)
+    doc.text(
+      doc.splitTextToSize(p.nom, x + L - 6 - colonne).slice(0, 3),
+      colonne, y + 6,
+    )
 
     doc.setFont('helvetica', 'normal').setFontSize(6.5).setTextColor(...GRIS)
-    doc.text([p.marque, p.contenance].filter(Boolean).join(' · ').slice(0, 34), x + 4, y + 15)
+    doc.text(
+      [p.marque, p.contenance].filter(Boolean).join(' · ').slice(0, 26),
+      colonne, y + 16.5,
+    )
 
-    doc.setFont('helvetica', 'bold').setFontSize(14).setTextColor(...ACCENT)
-    doc.text(euro(p.prixVente), x + 4, y + 23)
+    doc.setFont('helvetica', 'bold').setFontSize(15).setTextColor(...ACCENT)
+    doc.text(euro(p.prixVente), x + 4, y + 25.5)
 
     const png = codeBarresPng(p.ean, 1.4, 26)
-    if (png) doc.addImage(png, 'PNG', x + 4, y + 25, L - 12, 6)
+    if (png) doc.addImage(png, 'PNG', x + L / 2, y + 19.5, L / 2 - 6, 8)
   })
 
   doc.save(`etiquettes-${jourDe()}.pdf`)
