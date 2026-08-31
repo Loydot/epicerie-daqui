@@ -4,6 +4,7 @@ import JsBarcode from 'jsbarcode'
 import type { Lot, Nettoyage, Produit, Reception, Releve, Tache } from '../db/types'
 import { dateFr, dateHeureFr, euro, jourDe, marge, nombre } from './format'
 import { nomSection } from './sections'
+import { texteEtiquettePum } from './mesure'
 import { logoPourPdf, RAPPORT } from './logo'
 import type { Commande, LigneCommande } from '../db/types'
 import { motRemise, nomStatut, totalLignes } from './commandes'
@@ -177,7 +178,16 @@ export async function etiquettesPdf(produits: Produit[], magasin: string): Promi
     )
 
     doc.setFont('helvetica', 'bold').setFontSize(15).setTextColor(...ACCENT)
-    doc.text(euro(p.prixVente), x + 4, y + 25.5)
+    doc.text(euro(p.prixVente), x + 4, y + 24.5)
+
+    // Prix a l'unite de mesure : obligatoire des que le produit se vend au poids
+    // ou au volume, dispense pour ce qui se vend a la piece. La fonction ne rend
+    // rien dans ce second cas, et la ligne disparait d'elle-meme.
+    const mesure = texteEtiquettePum(p.contenance, p.prixVente)
+    if (mesure) {
+      doc.setFont('helvetica', 'normal').setFontSize(7).setTextColor(...GRIS)
+      doc.text(mesure, x + 4, y + 29)
+    }
 
     const png = codeBarresPng(p.ean, 1.4, 26)
     if (png) doc.addImage(png, 'PNG', x + L / 2, y + 19.5, L / 2 - 6, 8)

@@ -4,6 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db, uid } from '../db/db'
 import type { Produit } from '../db/types'
 import { dateFr, dateHeureFr, euro, joursRestants, marge, nombre } from '../lib/format'
+import { texteEtiquettePum } from '../lib/mesure'
 import { IconeBoite, IconeCorbeille, IconeExport, IconeValide } from '../components/Icones'
 import { SECTIONS } from '../lib/sections'
 
@@ -32,6 +33,7 @@ export default function ProduitDetail() {
   const p = brouillon
   const maj = (champs: Partial<Produit>) => { setBrouillon({ ...p, ...champs }); setSauve(false) }
   const m = marge(p.prixAchat, p.prixVente, p.tva)
+  const mesure = texteEtiquettePum(p.contenance, p.prixVente)
   const modifie = JSON.stringify({ ...p, majLe: '' }) !== JSON.stringify({ ...enregistre, majLe: '' })
 
   const enregistrer = async () => {
@@ -117,6 +119,15 @@ export default function ProduitDetail() {
               onChange={(e) => maj({ prixVente: e.target.value === '' ? null : Number(e.target.value) })} />
           </div>
         </div>
+        {p.prixVente != null && (
+          <p className="petit doux">
+            {mesure
+              ? <>Prix à l'unité de mesure : <strong className="mono">{mesure}</strong>, imprimé sous le prix sur l'étiquette.</>
+              : <>Contenance illisible : écris-la « 500 g », « 1 L » ou « 6 x 33 cl » pour que
+                l'étiquette porte le prix au kilo ou au litre, obligatoire dès qu'un produit se
+                vend au poids ou au volume.</>}
+          </p>
+        )}
         <div className="deux-champs">
           <div>
             <label htmlFor="d-tva">TVA (%)</label>

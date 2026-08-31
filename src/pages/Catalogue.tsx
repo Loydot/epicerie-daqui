@@ -3,12 +3,15 @@ import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/db'
 import { euro, nombre, normalise } from '../lib/format'
-import { IconeBoite, IconeExport, IconeRecherche, IconeScan } from '../components/Icones'
+import { IconeBoite, IconeEtiquette, IconeExport, IconeRecherche, IconeScan } from '../components/Icones'
 import { exporteCatalogueCsv } from '../lib/export'
 import { rangSection, SECTIONS } from '../lib/sections'
 import type { Produit, Section } from '../db/types'
 
 type Tri = 'rayon' | 'recent' | 'stock' | 'valeur'
+
+/** Le moteur PDF pese plusieurs centaines de Ko : charge seulement au clic. */
+const chargePdf = () => import('../lib/pdf')
 
 const parNom = (a: Produit, b: Produit) => a.nom.localeCompare(b.nom, 'fr')
 
@@ -17,6 +20,8 @@ export default function Catalogue() {
   const [q, setQ] = useState('')
   const [rayon, setRayon] = useState<Section | ''>('')
   const [tri, setTri] = useState<Tri>('rayon')
+  const [enCoursPdf, setEnCoursPdf] = useState(false)
+  const magasin = useLiveQuery(async () => (await db.reglages.get('magasin'))?.valeur ?? '', [], '') ?? ''
 
   const liste = useMemo(() => {
     if (!produits) return []
@@ -49,6 +54,25 @@ export default function Catalogue() {
     unites: liste.reduce((s, p) => s + p.stock, 0),
     valeur: liste.reduce((s, p) => s + p.stock * (p.prixAchat ?? 0), 0),
   }), [liste])
+
+  /**
+   * On etiquette exactement ce qui est affiche : filtrer sur un rayon avant de
+   * cliquer suffit donc a n'imprimer que la planche de ce rayon.
+   */
+  const imprimeEtiquettes = async () => {
+    const avecPrix = liste.filter((p) => p.prixVente != null)
+    if (avecPrix.length === 0) {
+      alert("Aucun des produits affiches n'a de prix de vente : il n'y a rien a etiqueter.")
+      return
+    }
+    setEnCoursPdf(true)
+    try {
+      const { etiquettesPdf } = await chargePdf()
+      await etiquettesPdf(avecPrix, magasin)
+    } finally {
+      setEnCoursPdf(false)
+    }
+  }
 
   if (!produits) return <div className="carte vide">Chargement…</div>
 
@@ -114,9 +138,14 @@ export default function Catalogue() {
       <div className="carte">
         <div className="ligne-espace" style={{ marginBottom: 6 }}>
           <h2>{liste.length} produit{liste.length > 1 ? 's' : ''}</h2>
-          <button type="button" className="discret" onClick={() => exporteCatalogueCsv(liste)}>
-            <IconeExport /> Export CSV
-          </button>
+          <div className="ligne">
+            <button type="button" className="discret" onClick={imprimeEtiquettes} disabled={enCoursPdf}>
+              <IconeEtiquette /> {enCoursPdf ? 'PDF…' : 'Étiquettes'}
+            </button>
+            <button type="button" className="discret" onClick={() => exporteCatalogueCsv(liste)}>
+              <IconeExport /> CSV
+            </button>
+          </div>
         </div>
         {liste.length === 0 ? (
           <div className="vide"><IconeRecherche /><p>Aucun résultat</p></div>

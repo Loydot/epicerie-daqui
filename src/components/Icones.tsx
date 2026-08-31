@@ -25,6 +25,13 @@ export const IconeCatalogue = (p: Props) => (
   </svg>
 )
 
+export const IconeEtiquette = (p: Props) => (
+  <svg {...base} {...p}>
+    <path d="M3 12.4V5a2 2 0 0 1 2-2h7.4a2 2 0 0 1 1.42.59l6.6 6.6a2 2 0 0 1 0 2.82l-7.4 7.4a2 2 0 0 1-2.82 0l-6.6-6.6A2 2 0 0 1 3 12.4z" />
+    <path d="M7.5 7.5h.01" />
+  </svg>
+)
+
 export const IconeTemperature = (p: Props) => (
   <svg {...base} {...p}>
     <path d="M10 13.8V5a2 2 0 1 1 4 0v8.8a4 4 0 1 1-4 0z" />

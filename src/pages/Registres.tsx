@@ -2,9 +2,7 @@ import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/db'
 import { aujourdhui, jourDe, nombre } from '../lib/format'
-import { exporteCatalogueCsv } from '../lib/export'
-import { rangSection } from '../lib/sections'
-import { IconeExport, IconeRegistre } from '../components/Icones'
+import { IconeRegistre } from '../components/Icones'
 
 /** Le moteur PDF pese plusieurs centaines de Ko : charge seulement au clic. */
 const chargePdf = () => import('../lib/pdf')
@@ -61,15 +59,6 @@ export default function Registres() {
     }
   }
 
-  const exporteEtiquettes = async () => {
-    const produits = (await db.produits.toArray())
-      .filter((p) => p.prixVente != null)
-      // Rangées comme le magasin : on colle les étiquettes rayon par rayon.
-      .sort((a, b) => rangSection(a.section) - rangSection(b.section) || a.nom.localeCompare(b.nom, 'fr'))
-    if (produits.length === 0) { alert('Aucun produit avec un prix de vente renseigné.'); return }
-    const { etiquettesPdf } = await chargePdf()
-    etiquettesPdf(produits, magasin)
-  }
 
   const total = compte ? compte.releves + compte.receptions + compte.lots + compte.nettoyages : 0
 
@@ -118,16 +107,6 @@ export default function Registres() {
           <IconeRegistre /> {enCours ? 'Génération…' : 'Générer le registre PDF'}
         </button>
         {total === 0 && <p className="petit doux">Aucune saisie sur cette période.</p>}
-      </div>
-
-      <div className="carte pile">
-        <h2>Documents d'inventaire</h2>
-        <button type="button" className="large" onClick={exporteEtiquettes}>
-          <IconeExport /> Planche d'étiquettes de rayon (PDF)
-        </button>
-        <button type="button" className="large" onClick={async () => exporteCatalogueCsv(await db.produits.toArray())}>
-          <IconeExport /> Catalogue complet (CSV pour Excel)
-        </button>
       </div>
     </div>
   )
