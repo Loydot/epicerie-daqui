@@ -6,7 +6,7 @@ import { dateFr, dateHeureFr, euro, jourDe, marge, nombre } from './format'
 import { nomSection } from './sections'
 import { logoPourPdf, RAPPORT } from './logo'
 import type { Commande, LigneCommande } from '../db/types'
-import { nomStatut, totalLignes } from './commandes'
+import { motRemise, nomStatut, totalLignes } from './commandes'
 
 const MARGE = 14
 const GRIS: [number, number, number] = [92, 102, 117]
@@ -262,7 +262,7 @@ export async function registrePdf(d: DonneesRegistre): Promise<void> {
 
 export interface DonneesBon {
   magasin: string
-  client: { nom: string; telephone: string }
+  client: { nom: string; telephone: string; adresse: string }
   commande: Commande
   lignes: LigneCommande[]
 }
@@ -281,21 +281,35 @@ export async function bonDeCommandePdf(d: DonneesBon): Promise<void> {
     `Commande du ${dateFr(d.commande.date.slice(0, 10))}`, logo,
   )
 
+  const mots = motRemise(d.commande.mode)
+  const livraison = d.commande.mode === 'livraison'
+
   doc.setFont('helvetica', 'bold').setFontSize(11).setTextColor(20)
   doc.text(d.client.nom || 'Client', MARGE, y + 8)
   doc.setFont('helvetica', 'normal').setFontSize(10).setTextColor(...GRIS)
   if (d.client.telephone) doc.text(d.client.telephone, MARGE, y + 14)
 
+  // L'adresse ne figure que sur une livraison : sur un retrait elle n'a rien à faire là.
+  let basGauche = y + 14
+  if (livraison && d.client.adresse) {
+    const lignesAdresse = doc.splitTextToSize(d.client.adresse, 90)
+    doc.text(lignesAdresse, MARGE, y + 21)
+    basGauche = y + 21 + (lignesAdresse.length - 1) * 5
+  }
+
   const droite = doc.internal.pageSize.getWidth() - MARGE
-  doc.text(`État : ${nomStatut(d.commande.statut)}`, droite, y + 8, { align: 'right' })
+  doc.setFont('helvetica', 'bold').setFontSize(11).setTextColor(...ACCENT)
+  doc.text(livraison ? 'À LIVRER' : 'À RETIRER SUR PLACE', droite, y + 8, { align: 'right' })
+  doc.setFont('helvetica', 'normal').setFontSize(10).setTextColor(...GRIS)
+  doc.text(`État : ${nomStatut(d.commande.statut, d.commande.mode)}`, droite, y + 14, { align: 'right' })
   if (d.commande.dateRetrait) {
-    doc.text(`Retrait souhaité : ${dateFr(d.commande.dateRetrait)}`, droite, y + 14, { align: 'right' })
+    doc.text(`${mots.date} : ${dateFr(d.commande.dateRetrait)}`, droite, y + 20, { align: 'right' })
   }
 
   const total = totalLignes(d.lignes)
   autoTable(doc, {
     ...styleTable,
-    startY: y + 22,
+    startY: Math.max(basGauche, y + 20) + 10,
     head: [['Article', 'Qté', 'Prix unitaire', 'Total']],
     columnStyles: {
       1: { cellWidth: 18, halign: 'right' },
@@ -333,8 +347,12 @@ export async function bonDeCommandePdf(d: DonneesBon): Promise<void> {
   }
 
   doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(...GRIS)
-  doc.text('Commande prise par téléphone. Prix indicatifs, sous réserve de disponibilité.', MARGE, fin)
+  doc.text(
+    'Commande prise par téléphone. Prix indicatifs, sous réserve de disponibilité.'
+    + (livraison ? " Merci de vérifier l'adresse ci-dessus." : ''),
+    MARGE, fin,
+  )
 
   piedDePage(doc)
-  doc.save(`bon-de-commande-${(d.client.nom || 'client').replace(/[^a-zA-Z0-9]+/g, '-').toLowerCase()}-${jourDe()}.pdf`)
+  doc.save(`bon-${livraison ? 'livraison' : 'commande'}-${(d.client.nom || 'client').replace(/[^a-zA-Z0-9]+/g, '-').toLowerCase()}-${jourDe()}.pdf`)
 }

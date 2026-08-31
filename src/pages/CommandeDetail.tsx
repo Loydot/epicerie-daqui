@@ -2,9 +2,9 @@ import { useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, uid } from '../db/db'
-import type { StatutCommande } from '../db/types'
+import type { ModeRemise, StatutCommande } from '../db/types'
 import { dateHeureFr, euro, nombre, normalise } from '../lib/format'
-import { changeStatut, nomStatut, STATUTS, tonStatut, totalLignes } from '../lib/commandes'
+import { changeStatut, motRemise, nomStatut, STATUTS, tonStatut, totalLignes } from '../lib/commandes'
 import {
   IconeBoite, IconeCorbeille, IconeExport, IconePlus, IconeRecherche, IconeValide,
 } from '../components/Icones'
@@ -78,7 +78,11 @@ export default function CommandeDetail() {
     const { bonDeCommandePdf } = await chargePdf()
     await bonDeCommandePdf({
       magasin,
-      client: { nom: client?.nom ?? '', telephone: client?.telephone ?? '' },
+      client: {
+        nom: client?.nom ?? '',
+        telephone: client?.telephone ?? '',
+        adresse: commande.adresseLivraison || client?.adresse || '',
+      },
       commande,
       lignes,
     })
@@ -96,13 +100,44 @@ export default function CommandeDetail() {
             <div className="petit doux mono">{client?.telephone || 'sans numéro'}</div>
           </div>
           <span className={`etiquette ${tonStatut(commande.statut)}`}>
-            {nomStatut(commande.statut)}
+            {nomStatut(commande.statut, commande.mode)}
           </span>
         </div>
 
+        <div>
+          <label>Comment la récupère-t-il ?</label>
+          <div className="onglets">
+            <button type="button" className={commande.mode === 'retrait' ? 'actif' : ''}
+              aria-pressed={commande.mode === 'retrait'}
+              onClick={() => void db.commandes.update(commande.id, { mode: 'retrait' as ModeRemise })}>
+              Il passe la prendre
+            </button>
+            <button type="button" className={commande.mode === 'livraison' ? 'actif' : ''}
+              aria-pressed={commande.mode === 'livraison'}
+              onClick={() => void db.commandes.update(commande.id, { mode: 'livraison' as ModeRemise })}>
+              On le livre
+            </button>
+          </div>
+        </div>
+
+        {commande.mode === 'livraison' && (
+          <div>
+            <label htmlFor="adresse">Adresse de livraison</label>
+            <textarea id="adresse"
+              value={commande.adresseLivraison || client?.adresse || ''}
+              placeholder="Rue, complément, village"
+              onChange={(e) => void db.commandes.update(commande.id, { adresseLivraison: e.target.value })} />
+            {!commande.adresseLivraison && client?.adresse && (
+              <p className="petit doux" style={{ marginTop: 4 }}>
+                Adresse reprise de sa fiche. La modifier ici ne vaut que pour cette commande.
+              </p>
+            )}
+          </div>
+        )}
+
         <div className="deux-champs">
           <div>
-            <label htmlFor="retrait">Retrait souhaité</label>
+            <label htmlFor="retrait">{motRemise(commande.mode).date}</label>
             <input id="retrait" type="date" value={commande.dateRetrait}
               onChange={(e) => void db.commandes.update(commande.id, { dateRetrait: e.target.value })} />
           </div>
@@ -110,7 +145,9 @@ export default function CommandeDetail() {
             <label htmlFor="statut">Où en est-elle ?</label>
             <select id="statut" value={commande.statut}
               onChange={(e) => void changeStatut(commande, e.target.value as StatutCommande)}>
-              {STATUTS.map((s) => <option key={s.cle} value={s.cle}>{s.nom}</option>)}
+              {STATUTS.map((s) => (
+                <option key={s.cle} value={s.cle}>{nomStatut(s.cle, commande.mode)}</option>
+              ))}
             </select>
           </div>
         </div>
@@ -125,8 +162,8 @@ export default function CommandeDetail() {
           <div className="bandeau">
             <IconeValide />
             <span>
-              Retirée le {dateHeureFr(commande.retireLe)}. Les articles du catalogue
-              ont été déduits du stock.
+              {motRemise(commande.mode).fait} {dateHeureFr(commande.retireLe)}. Les articles
+              du catalogue ont été déduits du stock.
             </span>
           </div>
         )}

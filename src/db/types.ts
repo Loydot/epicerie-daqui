@@ -153,9 +153,14 @@ export interface Client extends Synchronisable {
   id: Id
   nom: string
   telephone: string
+  /** Adresse de livraison habituelle, saisie une fois et reprise ensuite. */
+  adresse: string
   note: string
   creeLe: string
 }
+
+/** Le client passe la prendre, ou on la lui porte. */
+export type ModeRemise = 'retrait' | 'livraison'
 
 /**
  * Cycle de vie d'une commande prise au téléphone.
@@ -169,12 +174,15 @@ export interface Commande extends Synchronisable {
   clientId: Id
   /** Prise de commande, ISO 8601. */
   date: string
-  /** Retrait souhaité, AAAA-MM-JJ. Vide si le client n'a rien précisé. */
+  mode: ModeRemise
+  /** Retrait ou livraison souhaité, AAAA-MM-JJ. Vide si rien n'a été précisé. */
   dateRetrait: string
+  /** Adresse pour cette commande. Vide : on prend celle de la fiche client. */
+  adresseLivraison: string
   statut: StatutCommande
   note: string
   operateur: string
-  /** Horodatage du retrait, qui a déclenché la sortie de stock. */
+  /** Horodatage de la remise au client, qui a déclenché la sortie de stock. */
   retireLe: string
 }
 

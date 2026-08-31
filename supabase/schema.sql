@@ -132,13 +132,18 @@ create table if not exists reglages (
   supprime boolean not null default false
 );
 
--- Ajout après coup pour les bases déjà créées.
+-- Ajouts après coup pour les bases déjà créées.
+alter table clients add column if not exists adresse text not null default '';
+alter table commandes add column if not exists mode text not null default 'retrait';
+alter table commandes add column if not exists adresse_livraison text not null default '';
+
 alter table produits add column if not exists section text not null default 'nonclasse';
 
 create table if not exists clients (
   id uuid primary key,
   nom text not null default '',
   telephone text not null default '',
+  adresse text not null default '',
   note text not null default '',
   cree_le timestamptz not null default now(),
   maj_le timestamptz not null default now(),
@@ -149,7 +154,9 @@ create table if not exists commandes (
   id uuid primary key,
   client_id uuid not null,
   date timestamptz not null,
+  mode text not null default 'retrait',
   date_retrait text not null default '',
+  adresse_livraison text not null default '',
   statut text not null default 'a_commander',
   note text not null default '',
   operateur text not null default '',

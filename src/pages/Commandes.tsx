@@ -2,9 +2,9 @@ import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, uid } from '../db/db'
-import type { Client } from '../db/types'
+import type { Client, ModeRemise } from '../db/types'
 import { dateFr, euro, normalise, nombre } from '../lib/format'
-import { enCours, nomStatut, tonStatut, totalLignes } from '../lib/commandes'
+import { enCours, motRemise, nomStatut, tonStatut, totalLignes } from '../lib/commandes'
 import { useOperateur } from '../lib/operateur'
 import { IconePlus, IconeRecherche, IconeRegistre, IconeValide } from '../components/Icones'
 
@@ -20,6 +20,8 @@ export default function Commandes() {
   const [nomClient, setNomClient] = useState('')
   const [telephone, setTelephone] = useState('')
   const [clientChoisi, setClientChoisi] = useState<Client | null>(null)
+  const [adresse, setAdresse] = useState('')
+  const [mode, setMode] = useState<ModeRemise>('retrait')
 
   const commandes = useLiveQuery(() => db.commandes.toArray(), [], []) ?? []
   const clients = useLiveQuery(() => db.clients.toArray(), [], []) ?? []
@@ -35,7 +37,9 @@ export default function Commandes() {
         if (filtre === 'terminees' && enCours(c.statut)) return false
         if (!cle) return true
         const cl = client(c.clientId)
-        return normalise(`${cl?.nom ?? ''} ${cl?.telephone ?? ''} ${c.note}`).includes(cle)
+        return normalise(
+          `${cl?.nom ?? ''} ${cl?.telephone ?? ''} ${cl?.adresse ?? ''} ${c.adresseLivraison} ${c.note}`,
+        ).includes(cle)
       })
       // Les plus urgentes d'abord : celles dont le retrait approche.
       .sort((a, b) => (a.dateRetrait || '9999').localeCompare(b.dateRetrait || '9999')
@@ -58,22 +62,27 @@ export default function Commandes() {
     if (!clientId) {
       clientId = uid()
       await db.clients.add({
-        id: clientId, nom, telephone: telephone.trim(), note: '',
-        creeLe: new Date().toISOString(),
+        id: clientId, nom, telephone: telephone.trim(), adresse: adresse.trim(),
+        note: '', creeLe: new Date().toISOString(),
       })
-    } else if (telephone.trim() && !clientChoisi?.telephone) {
-      // Le numéro manquait sur la fiche : on en profite pour le compléter.
-      await db.clients.update(clientId, { telephone: telephone.trim() })
+    } else {
+      // La fiche existe : on complète ce qui y manquait, sans rien écraser.
+      const manques: Partial<Client> = {}
+      if (telephone.trim() && !clientChoisi?.telephone) manques.telephone = telephone.trim()
+      if (adresse.trim() && !clientChoisi?.adresse) manques.adresse = adresse.trim()
+      if (Object.keys(manques).length) await db.clients.update(clientId, manques)
     }
 
     const id = uid()
     await db.commandes.add({
-      id, clientId, date: new Date().toISOString(), dateRetrait: '',
-      statut: 'a_commander', note: '', operateur, retireLe: '',
+      id, clientId, date: new Date().toISOString(), mode, dateRetrait: '',
+      adresseLivraison: '', statut: 'a_commander', note: '', operateur, retireLe: '',
     })
     setOuvert(false)
     setNomClient('')
     setTelephone('')
+    setAdresse('')
+    setMode('retrait')
     setClientChoisi(null)
     navigate(`/commande/${id}`)
   }
@@ -100,7 +109,10 @@ export default function Commandes() {
             <div className="liste">
               {suggestions.map((c) => (
                 <button key={c.id} type="button" className="item"
-                  onClick={() => { setClientChoisi(c); setNomClient(c.nom); setTelephone(c.telephone) }}>
+                  onClick={() => {
+                    setClientChoisi(c); setNomClient(c.nom)
+                    setTelephone(c.telephone); setAdresse(c.adresse)
+                  }}>
                   <div className="item-corps">
                     <div className="item-nom">{c.nom}</div>
                     <div className="petit doux mono">{c.telephone || 'sans numéro'}</div>
@@ -117,6 +129,31 @@ export default function Commandes() {
               onChange={(e) => setTelephone(e.target.value)} />
           </div>
 
+          <div>
+            <label>Comment la récupère-t-il ?</label>
+            <div className="onglets">
+              <button type="button" className={mode === 'retrait' ? 'actif' : ''}
+                onClick={() => setMode('retrait')} aria-pressed={mode === 'retrait'}>
+                Il passe la prendre
+              </button>
+              <button type="button" className={mode === 'livraison' ? 'actif' : ''}
+                onClick={() => setMode('livraison')} aria-pressed={mode === 'livraison'}>
+                On le livre
+              </button>
+            </div>
+          </div>
+
+          {mode === 'livraison' && (
+            <div>
+              <label htmlFor="cl-adr">Adresse de livraison</label>
+              <textarea id="cl-adr" value={adresse} placeholder="Rue, complément, village"
+                onChange={(e) => setAdresse(e.target.value)} />
+              <p className="petit doux" style={{ marginTop: 4 }}>
+                Enregistrée sur sa fiche : elle sera reprise à la prochaine commande.
+              </p>
+            </div>
+          )}
+
           {clientChoisi && (
             <p className="petit doux">
               Commande rattachée à la fiche existante de {clientChoisi.nom}.
@@ -125,7 +162,8 @@ export default function Commandes() {
 
           <div className="ligne">
             <button type="button" className="champ" onClick={() => {
-              setOuvert(false); setNomClient(''); setTelephone(''); setClientChoisi(null)
+              setOuvert(false); setNomClient(''); setTelephone('')
+              setAdresse(''); setMode('retrait'); setClientChoisi(null)
             }}>
               Annuler
             </button>
@@ -174,15 +212,17 @@ export default function Commandes() {
                   <div className="item-corps">
                     <div className="item-nom">{cl?.nom ?? 'Client supprimé'}</div>
                     <div className="petit doux">
+                      {c.mode === 'livraison' && <span className="etiquette accent">Livraison</span>}
+                      {c.mode === 'livraison' && ' '}
                       {siennes.length} article{siennes.length > 1 ? 's' : ''}
-                      {c.dateRetrait && ` · retrait le ${dateFr(c.dateRetrait)}`}
+                      {c.dateRetrait && ` · ${motRemise(c.mode).verbe.toLowerCase()} le ${dateFr(c.dateRetrait)}`}
                     </div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <div className="mono" style={{ fontWeight: 600 }}>
                       {siennes.length ? euro(totalLignes(siennes)) : '—'}
                     </div>
-                    <span className={`etiquette ${tonStatut(c.statut)}`}>{nomStatut(c.statut)}</span>
+                    <span className={`etiquette ${tonStatut(c.statut)}`}>{nomStatut(c.statut, c.mode)}</span>
                   </div>
                 </Link>
               )

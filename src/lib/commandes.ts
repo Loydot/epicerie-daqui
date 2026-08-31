@@ -1,5 +1,5 @@
 import { db } from '../db/db'
-import type { Commande, LigneCommande, StatutCommande } from '../db/types'
+import type { Commande, LigneCommande, ModeRemise, StatutCommande } from '../db/types'
 
 /**
  * Cycle de vie d'une commande téléphonique, dans l'ordre où elle avance.
@@ -13,8 +13,19 @@ export const STATUTS: Array<{ cle: StatutCommande; nom: string; ton: string }> =
   { cle: 'annulee', nom: 'Annulée', ton: 'danger' },
 ]
 
-export const nomStatut = (s: StatutCommande): string =>
-  STATUTS.find((x) => x.cle === s)?.nom ?? s
+/**
+ * « Retirée » ou « Livrée » selon le mode : c'est le même état, mais on ne dit
+ * pas la même chose à un client qui passe qu'à un client qu'on livre.
+ */
+export const nomStatut = (s: StatutCommande, mode: ModeRemise = 'retrait'): string => {
+  if (s === 'retiree') return mode === 'livraison' ? 'Livrée' : 'Retirée'
+  return STATUTS.find((x) => x.cle === s)?.nom ?? s
+}
+
+export const motRemise = (mode: ModeRemise) =>
+  mode === 'livraison'
+    ? { verbe: 'Livraison', date: 'Livraison souhaitée', fait: 'Livrée le' }
+    : { verbe: 'Retrait', date: 'Retrait souhaité', fait: 'Retirée le' }
 
 export const tonStatut = (s: StatutCommande): string =>
   STATUTS.find((x) => x.cle === s)?.ton ?? ''

@@ -107,6 +107,19 @@ class HaccpDb extends Dexie {
       lignesCommande: 'id, commandeId, produitId, aSynchroniser',
     })
 
+    // v6 : livraison. Les commandes existantes restent des retraits.
+    this.version(6).stores({
+      commandes: 'id, clientId, statut, mode, date, dateRetrait, aSynchroniser',
+    }).upgrade(async (tx) => {
+      await tx.table('clients').toCollection().modify((c: Record<string, unknown>) => {
+        c.adresse ??= ''
+      })
+      await tx.table('commandes').toCollection().modify((c: Record<string, unknown>) => {
+        c.mode ??= 'retrait'
+        c.adresseLivraison ??= ''
+      })
+    })
+
     this.brancheLesCrochets()
   }
 
