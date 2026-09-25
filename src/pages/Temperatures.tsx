@@ -72,6 +72,9 @@ export default function Temperatures() {
     [], [],
   ) ?? []
 
+  /** Les équipements éteints ce jour-là figurent au relevé, au lieu d'y manquer. */
+  const eteints = equipements.filter((e) => estEteint(e, jour))
+
   const historique = [...relevesJour].sort((a, b) => b.date.localeCompare(a.date))
 
   const momentDuJour: Moment = estAujourdhui ? momentParDefaut() : 'matin'
@@ -394,6 +397,10 @@ ${quoi}`)) return
                   <div className="petit doux">{eq.tempMin} °C à {eq.tempMax} °C</div>
                 </div>
                 <button type="button" onClick={() => remet(eq.id)}>Remettre</button>
+                <button type="button" className="discret" aria-label={`Supprimer définitivement ${eq.nom}`}
+                  onClick={() => supprimeEquipement(eq)}>
+                  <IconeCorbeille />
+                </button>
               </div>
             ))}
           </div>
@@ -408,10 +415,20 @@ ${quoi}`)) return
             <IconeExport /> CSV {jours} j
           </button>
         </div>
-        {historique.length === 0 && (
+        {historique.length === 0 && eteints.length === 0 && (
           <p className="petit doux" style={{ marginTop: 8 }}>Aucun relevé ce jour-là.</p>
         )}
         <div className="liste" style={{ marginTop: 8 }}>
+            {eteints.map((eq) => (
+              <div key={`eteint-${eq.id}`} className="item">
+                <div className="item-corps">
+                  <div className="item-nom">{eq.nom}</div>
+                  <div className="petit doux">Éteint ce jour-là : aucun relevé attendu</div>
+                </div>
+                <span className="etiquette">Éteint</span>
+                <button type="button" onClick={() => void basculeEteint(eq)}>Il était allumé</button>
+              </div>
+            ))}
             {historique.map((r) => (
               releveEnEdition === r.id ? (
                 <EditionReleve
