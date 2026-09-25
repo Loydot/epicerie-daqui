@@ -68,6 +68,16 @@ export interface Equipement extends Synchronisable {
   tempMax: number
   actif: number
   ordre: number
+  /**
+   * Jours d'ouverture, numéros de jour JS (0 = dimanche) séparés par des virgules,
+   * ex. « 2,5 ». Vide : ouvert tous les jours.
+   */
+  joursOuverture?: string
+  /**
+   * Exceptions à ce calendrier, une par jour : « -AAAA-MM-JJ » éteint ce jour-là,
+   * « +AAAA-MM-JJ » ouvert ce jour-là malgré le calendrier.
+   */
+  exceptions?: string
 }
 
 export type Moment = 'matin' | 'soir'

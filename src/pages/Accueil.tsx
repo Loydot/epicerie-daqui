@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/db'
 import { aujourdhui, euro, joursRestants, nombre } from '../lib/format'
+import { estEteint } from '../lib/ouverture'
 import {
   IconeAlerte, IconeBalai, IconeBoite, IconeCalendrier, IconeCamion,
   IconeScan, IconeTemperature, IconeValide,
@@ -12,13 +13,16 @@ export default function Accueil() {
     const jour = aujourdhui()
     const [produits, equipements, relevesJour, lots, receptionsJour] = await Promise.all([
       db.produits.toArray(),
-      db.equipements.filter((e) => e.actif === 1).toArray(),
+      db.equipements.filter((e) => e.actif === 1 && !estEteint(e, jour)).toArray(),
       db.releves.where('jour').equals(jour).toArray(),
       db.lots.where('statut').equals('en_stock').toArray(),
       db.receptions.where('jour').equals(jour).count(),
     ])
 
-    const releves = new Set(relevesJour.map((r) => r.equipementId))
+    // Seuls comptent les équipements à relever : un frigo éteint n'attend rien.
+    const releves = new Set(
+      relevesJour.map((r) => r.equipementId).filter((id) => equipements.some((e) => e.id === id)),
+    )
     const perimes = lots.filter((l) => joursRestants(l.dlc) < 0)
     const proches = lots.filter((l) => {
       const j = joursRestants(l.dlc)

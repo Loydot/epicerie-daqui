@@ -2,6 +2,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/db'
 import { aujourdhui, joursRestants } from '../lib/format'
+import { estEteint } from '../lib/ouverture'
 import {
   IconeAccueil, IconeCatalogue, IconeRegistre, IconeReglages, IconeRetour,
   IconeScan, IconeTemperature,
@@ -21,12 +22,12 @@ function useNombreAlertes(): number {
   return useLiveQuery(async () => {
     const jour = aujourdhui()
     const [equipements, relevesDuJour, lots] = await Promise.all([
-      db.equipements.filter((e) => e.actif === 1).count(),
+      db.equipements.filter((e) => e.actif === 1 && !estEteint(e, jour)).toArray(),
       db.releves.where('jour').equals(jour).toArray(),
       db.lots.where('statut').equals('en_stock').toArray(),
     ])
-    const faits = new Set(relevesDuJour.map((r) => r.equipementId)).size
-    const relevesManquants = Math.max(0, equipements - faits)
+    const faits = new Set(relevesDuJour.map((r) => r.equipementId))
+    const relevesManquants = equipements.filter((e) => !faits.has(e.id)).length
     const dlcCritiques = lots.filter((l) => joursRestants(l.dlc) <= 3).length
     return relevesManquants + dlcCritiques
   }, [], 0) ?? 0

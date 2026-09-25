@@ -204,6 +204,9 @@ export interface DonneesRegistre {
   au: string
   releves: Releve[]
   nomEquipement: (id: string) => string
+  /** Équipements éteints un jour précis, et calendriers d'ouverture limités. */
+  arrets: Array<{ jour: string; nom: string }>
+  calendriers: Array<{ nom: string; ouvert: string }>
   receptions: Reception[]
   lots: Lot[]
   nomProduit: (id: string) => string
@@ -232,10 +235,26 @@ export async function registrePdf(d: DonneesRegistre): Promise<void> {
   }
 
   section('1. Relevés de température', ['Date', 'Équipement', 'Moment', 'Temp.', 'Conforme', 'Action corrective', 'Par'],
-    d.releves.map((r) => [
-      dateHeureFr(r.date), d.nomEquipement(r.equipementId), r.moment,
-      `${r.temp} °C`, r.conforme ? 'Oui' : 'NON', r.actionCorrective || '—', r.operateur || '—',
-    ]), true)
+    [
+      // Un équipement à ouverture limitée : dit une fois, pour que ses jours sans
+      // relevé ne passent pas pour des oublis.
+      ...d.calendriers.map((c) => [
+        '—', c.nom, '—', 'Éteint', '—', `Ouvert uniquement : ${c.ouvert}. Éteint les autres jours.`, '—',
+      ]),
+      ...[
+        ...d.releves.map((r) => ({
+          cle: r.date,
+          ligne: [
+            dateHeureFr(r.date), d.nomEquipement(r.equipementId), r.moment,
+            `${r.temp} °C`, r.conforme ? 'Oui' : 'NON', r.actionCorrective || '—', r.operateur || '—',
+          ],
+        })),
+        ...d.arrets.map((a) => ({
+          cle: `${a.jour}T00:00`,
+          ligne: [dateFr(a.jour), a.nom, '—', 'Éteint', '—', 'Équipement éteint ce jour-là', '—'],
+        })),
+      ].sort((a, b) => a.cle.localeCompare(b.cle)).map((x) => x.ligne),
+    ], true)
 
   section('2. Contrôles à réception', ['Date', 'Fournisseur', 'BL', 'Temp.', 'Emball.', 'DLC', 'Decision', 'Par'],
     d.receptions.map((r) => [

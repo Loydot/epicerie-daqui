@@ -62,6 +62,12 @@ create table if not exists releves (
   supprime boolean not null default false
 );
 
+-- Calendrier d'ouverture d'un équipement (ex. frigo pâtisserie ouvert 2 jours
+-- par semaine) et jours précis où il est éteint. Ajouté après coup : "add column
+-- if not exists" permet de rejouer ce fichier sur une base déjà en service.
+alter table equipements add column if not exists jours_ouverture text not null default '';
+alter table equipements add column if not exists exceptions text not null default '';
+
 create table if not exists receptions (
   id uuid primary key,
   date timestamptz not null,

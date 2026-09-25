@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/db'
 import { aujourdhui, jourDe, nombre } from '../lib/format'
+import { aUnCalendrier, joursEteintsManuels, libelleOuverture } from '../lib/ouverture'
 import { IconeRegistre } from '../components/Icones'
 
 /** Le moteur PDF pese plusieurs centaines de Ko : charge seulement au clic. */
@@ -46,6 +47,9 @@ export default function Registres() {
         magasin, du, au,
         releves: releves.filter((r) => dans(r.jour)).sort((a, b) => a.date.localeCompare(b.date)),
         nomEquipement: (id) => equipements.find((e) => e.id === id)?.nom ?? 'Équipement supprimé',
+        arrets: equipements.flatMap((e) => joursEteintsManuels(e, du, au).map((jour) => ({ jour, nom: e.nom }))),
+        calendriers: equipements.filter((e) => e.actif === 1 && aUnCalendrier(e))
+          .map((e) => ({ nom: e.nom, ouvert: libelleOuverture(e) })),
         receptions: receptions.filter((r) => dans(r.jour)).sort((a, b) => a.date.localeCompare(b.date)),
         lots: lots.filter((l) => dans(l.dlc) || (l.retireLe && dans(jourDe(new Date(l.retireLe)))))
           .sort((a, b) => a.dlc.localeCompare(b.dlc)),

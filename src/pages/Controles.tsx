@@ -2,19 +2,20 @@ import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/db'
 import { aujourdhui, joursRestants } from '../lib/format'
+import { estEteint } from '../lib/ouverture'
 import { IconeBalai, IconeCalendrier, IconeCamion, IconeRegistre, IconeTemperature } from '../components/Icones'
 
 export default function Controles() {
   const etat = useLiveQuery(async () => {
     const jour = aujourdhui()
     const [equipements, relevesJour, lots, receptionsJour] = await Promise.all([
-      db.equipements.filter((e) => e.actif === 1).count(),
+      db.equipements.filter((e) => e.actif === 1 && !estEteint(e, jour)).toArray(),
       db.releves.where('jour').equals(jour).toArray(),
       db.lots.where('statut').equals('en_stock').toArray(),
       db.receptions.where('jour').equals(jour).count(),
     ])
     return {
-      relevesManquants: Math.max(0, equipements - new Set(relevesJour.map((r) => r.equipementId)).size),
+      relevesManquants: equipements.filter((e) => !relevesJour.some((r) => r.equipementId === e.id)).length,
       horsZone: relevesJour.filter((r) => r.conforme === 0).length,
       urgents: lots.filter((l) => joursRestants(l.dlc) <= 3).length,
       receptionsJour,

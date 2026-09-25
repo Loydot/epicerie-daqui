@@ -2,18 +2,39 @@ import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, uid } from '../db/db'
 import type { Equipement, Moment, TypeEquipement } from '../db/types'
-import { aujourdhui, dateHeureCourte, dateHeureFr, jourDe, nombre } from '../lib/format'
+import { aujourdhui, dateFr, dateHeureFr, jourDe, nombre } from '../lib/format'
+import {
+  estEteint, exceptionsApresBascule, joursOuverts, JOURS_SEMAINE, versJoursOuverture,
+} from '../lib/ouverture'
 import { ChoixOperateur, useOperateur } from '../lib/operateur'
 import { exporteTemperaturesCsv } from '../lib/export'
 import { IconeAlerte, IconeCorbeille, IconeExport, IconeReglages, IconeValide } from '../components/Icones'
 import GraphiqueTemperatures from '../components/GraphiqueTemperatures'
 import AjoutEquipement from '../components/AjoutEquipement'
+import EditionReleve from '../components/EditionReleve'
 
 /** Avant 15 h on considere que c'est le relevé du matin. */
 const momentParDefaut = (): Moment => (new Date().getHours() < 15 ? 'matin' : 'soir')
 
+/** Un jour passé n'a pas d'heure « courante » : le matin à 8 h, le soir à 17 h. */
+const dateDuReleve = (jour: string, moment: Moment): Date =>
+  jour === aujourdhui() ? new Date() : new Date(`${jour}T${moment === 'matin' ? '08:00' : '17:00'}:00`)
+
+/** Décale un jour AAAA-MM-JJ de n jours. */
+const decale = (jour: string, n: number): string => {
+  const d = new Date(`${jour}T12:00:00`)
+  d.setDate(d.getDate() + n)
+  return jourDe(d)
+}
+
+const libelleJour = (jour: string): string =>
+  new Date(`${jour}T12:00:00`).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
+
 export default function Temperatures() {
-  const jour = aujourdhui()
+  const aujourd = aujourdhui()
+  const [jour, setJour] = useState(aujourd)
+  const estAujourdhui = jour === aujourd
+  const [releveEnEdition, setReleveEnEdition] = useState<string | null>(null)
   const [operateur, setOperateur, operateurs] = useOperateur()
   const [saisies, setSaisies] = useState<Record<string, string>>({})
   const [moments, setMoments] = useState<Record<string, Moment>>({})
@@ -42,10 +63,31 @@ export default function Temperatures() {
     () => db.releves.where('date').aboveOrEqual(debutPeriode).toArray(),
     [debutPeriode], [],
   ) ?? []
-  const historique = useLiveQuery(
-    async () => (await db.releves.orderBy('date').reverse().limit(60).toArray()),
-    [], [],
-  ) ?? []
+  const historique = [...relevesJour].sort((a, b) => b.date.localeCompare(a.date))
+
+  const momentDuJour: Moment = estAujourdhui ? momentParDefaut() : 'matin'
+
+  /** Changer de jour repart de zéro : une saisie ne doit pas suivre au mauvais jour. */
+  const changeJour = (j: string) => {
+    if (!j || j > aujourd) return
+    setJour(j)
+    setSaisies({})
+    setActions({})
+    setMoments({})
+    setReleveEnEdition(null)
+  }
+
+  /** Éteint (ou rallume) un équipement pour le jour affiché. */
+  const basculeEteint = async (eq: Equipement) => {
+    await db.equipements.update(eq.id, { exceptions: exceptionsApresBascule(eq, jour) })
+  }
+
+  const basculeJourOuverture = async (eq: Equipement, numero: number) => {
+    const ouverts = joursOuverts(eq)
+    const suivants = ouverts.includes(numero) ? ouverts.filter((n) => n !== numero) : [...ouverts, numero]
+    if (suivants.length === 0) return
+    await db.equipements.update(eq.id, { joursOuverture: versJoursOuverture(suivants) })
+  }
 
   const nomEquipement = (id: string) =>
     tousEquipements.find((e) => e.id === id)?.nom ?? 'Équipement supprimé'
@@ -110,14 +152,15 @@ ${quoi}`)) return
       alert("Température hors zone : décris l'action corrective avant d'enregistrer (c'est ce que le contrôleur regarde).")
       return
     }
-    const maintenant = new Date()
+    const moment = moments[eq.id] ?? momentDuJour
+    const quand = dateDuReleve(jour, moment)
     await db.releves.add({
       id: uid(),
       equipementId: eq.id,
       temp,
-      date: maintenant.toISOString(),
-      jour: jourDe(maintenant),
-      moment: moments[eq.id] ?? momentParDefaut(),
+      date: quand.toISOString(),
+      jour: jourDe(quand),
+      moment,
       operateur,
       conforme: conforme ? 1 : 0,
       actionCorrective: conforme ? '' : action,
@@ -133,6 +176,29 @@ ${quoi}`)) return
           <ChoixOperateur valeur={operateur} surChangement={setOperateur} options={operateurs} />
         </div>
       )}
+
+      <div className="carte pile">
+        <div className="ligne-espace">
+          <button type="button" aria-label="Jour précédent" onClick={() => changeJour(decale(jour, -1))}>‹</button>
+          <div style={{ textAlign: 'center' }}>
+            <strong style={{ textTransform: 'capitalize' }}>{libelleJour(jour)}</strong>
+            <div className="petit doux">{estAujourdhui ? "Aujourd'hui" : dateFr(jour)}</div>
+          </div>
+          <button type="button" aria-label="Jour suivant" disabled={estAujourdhui}
+            onClick={() => changeJour(decale(jour, 1))}>›</button>
+        </div>
+        <div className="ligne">
+          <input type="date" aria-label="Choisir la date" value={jour} max={aujourd}
+            onChange={(e) => changeJour(e.target.value)} />
+          {!estAujourdhui && <button type="button" onClick={() => changeJour(aujourd)}>Aujourd'hui</button>}
+        </div>
+        {!estAujourdhui && (
+          <div className="bandeau">
+            <IconeAlerte />
+            <span>Tu consultes le {dateFr(jour)}. Un relevé enregistré ici sera daté de ce jour-là.</span>
+          </div>
+        )}
+      </div>
 
       {equipements.length > 0 && (
         <div className="onglets" role="group" aria-label="Période affichée sur les courbes">
@@ -152,6 +218,7 @@ ${quoi}`)) return
         const brut = (saisies[eq.id] ?? '').replace(',', '.')
         const valeur = brut === '' ? null : Number(brut)
         const horsZone = valeur != null && !Number.isNaN(valeur) && (valeur < eq.tempMin || valeur > eq.tempMax)
+        const eteint = estEteint(eq, jour)
 
         return (
           <div key={eq.id} className="carte pile">
@@ -172,6 +239,7 @@ ${quoi}`)) return
               </div>
               <div className="ligne" style={{ flexWrap: 'wrap' }}>
                 <span className="petit doux">Zone admise : {eq.tempMin} °C à {eq.tempMax} °C</span>
+                {eteint && <span className="etiquette">Éteint ce jour</span>}
                 {dejaFaits.length > 0 && (
                   <span className="etiquette ok">
                     <IconeValide /> {dejaFaits.length} relevé{dejaFaits.length > 1 ? 's' : ''}
@@ -210,6 +278,21 @@ ${quoi}`)) return
                     </div>
                   </div>
                 </div>
+                <div>
+                  <label>Jours d'ouverture</label>
+                  <div className="ligne" style={{ flexWrap: 'wrap' }}>
+                    {JOURS_SEMAINE.map(([numero, libelle]) => (
+                      <button key={numero} type="button" aria-pressed={joursOuverts(eq).includes(numero)}
+                        className={joursOuverts(eq).includes(numero) ? 'principal' : ''}
+                        onClick={() => void basculeJourOuverture(eq, numero)}>
+                        {libelle}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="petit doux" style={{ marginTop: 4 }}>
+                    Les autres jours, l'équipement est éteint : aucun relevé n'est demandé.
+                  </p>
+                </div>
                 <button type="button" className="destructif large" onClick={() => supprimeEquipement(eq)}>
                   <IconeCorbeille /> Supprimer définitivement
                 </button>
@@ -231,6 +314,18 @@ ${quoi}`)) return
               </div>
             )}
 
+            {eteint ? (
+              <div className="pile">
+                <div className="bandeau">
+                  <IconeAlerte />
+                  <span>Éteint le {dateFr(jour)} : aucun relevé attendu ce jour-là.</span>
+                </div>
+                <button type="button" className="large" onClick={() => void basculeEteint(eq)}>
+                  Il était allumé ce jour-là
+                </button>
+              </div>
+            ) : (
+              <>
             <div className="ligne">
               <div className="champ">
                 <label htmlFor={`t-${eq.id}`}>Température relevée (°C)</label>
@@ -241,7 +336,7 @@ ${quoi}`)) return
               </div>
               <div style={{ width: 120 }}>
                 <label htmlFor={`m-${eq.id}`}>Moment</label>
-                <select id={`m-${eq.id}`} value={moments[eq.id] ?? momentParDefaut()}
+                <select id={`m-${eq.id}`} value={moments[eq.id] ?? momentDuJour}
                   onChange={(e) => setMoments((m) => ({ ...m, [eq.id]: e.target.value as Moment }))}>
                   <option value="matin">Matin</option>
                   <option value="soir">Soir</option>
@@ -265,6 +360,11 @@ ${quoi}`)) return
               disabled={(saisies[eq.id] ?? '') === ''}>
               Enregistrer le relevé
             </button>
+            <button type="button" className="discret" onClick={() => void basculeEteint(eq)}>
+              {dejaFaits.length > 0 ? "Éteint ce jour (les relevés restent)" : 'Éteint ce jour'}
+            </button>
+              </>
+            )}
           </div>
         )
       })}
@@ -291,28 +391,44 @@ ${quoi}`)) return
         </div>
       )}
 
-      {historique.length > 0 && (
-        <div className="carte">
-          <div className="ligne-espace">
-            <h2>Historique</h2>
-            <button type="button" className="discret"
-              onClick={() => exporteTemperaturesCsv(historique, nomEquipement)}>
-              <IconeExport /> CSV
-            </button>
-          </div>
-          <div className="liste" style={{ marginTop: 8 }}>
+      <div className="carte">
+        <div className="ligne-espace">
+          <h2>Relevés du {dateFr(jour)}</h2>
+          <button type="button" className="discret"
+            onClick={() => exporteTemperaturesCsv(relevesPeriode, nomEquipement)}>
+            <IconeExport /> CSV {jours} j
+          </button>
+        </div>
+        {historique.length === 0 && (
+          <p className="petit doux" style={{ marginTop: 8 }}>Aucun relevé ce jour-là.</p>
+        )}
+        <div className="liste" style={{ marginTop: 8 }}>
             {historique.map((r) => (
+              releveEnEdition === r.id ? (
+                <EditionReleve
+                  key={r.id}
+                  releve={r}
+                  equipement={tousEquipements.find((e) => e.id === r.equipementId)}
+                  surFermer={() => setReleveEnEdition(null)}
+                  surEnregistre={(j) => { setReleveEnEdition(null); changeJour(j) }}
+                />
+              ) : (
               <div key={r.id} className="item">
                 <div className="item-corps">
                   <div className="item-nom mono">{nombre(r.temp, 1)} °C</div>
                   <div className="petit doux" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {dateHeureCourte(r.date)} · {nomEquipement(r.equipementId)}
+                    {dateHeureFr(r.date)} · {nomEquipement(r.equipementId)}
                     {r.operateur && ` · ${r.operateur}`}
                   </div>
                 </div>
                 <span className={`etiquette ${r.conforme ? 'ok' : 'danger'}`}>
                   {r.conforme ? 'Conforme' : 'Hors zone'}
                 </span>
+                <button type="button" className="discret"
+                  aria-label={`Modifier le relevé de ${dateHeureFr(r.date)}`}
+                  onClick={() => setReleveEnEdition(r.id)}>
+                  <IconeReglages />
+                </button>
                 <button
                   type="button" className="discret"
                   aria-label={`Supprimer le relevé de ${dateHeureFr(r.date)}`}
@@ -324,10 +440,10 @@ ${quoi}`)) return
                   <IconeCorbeille />
                 </button>
               </div>
+              )
             ))}
-          </div>
         </div>
-      )}
+      </div>
     </div>
   )
 }
