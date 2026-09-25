@@ -63,6 +63,15 @@ export default function Temperatures() {
     () => db.releves.where('date').aboveOrEqual(debutPeriode).toArray(),
     [debutPeriode], [],
   ) ?? []
+  // Classés par saisie (et non par date du relevé) : un relevé daté par erreur
+  // au mauvais jour resterait sinon introuvable en tête de liste.
+  const recents = useLiveQuery(
+    async () => (await db.releves.toArray())
+      .sort((a, b) => (b.majLe ?? '').localeCompare(a.majLe ?? ''))
+      .slice(0, 15),
+    [], [],
+  ) ?? []
+
   const historique = [...relevesJour].sort((a, b) => b.date.localeCompare(a.date))
 
   const momentDuJour: Moment = estAujourdhui ? momentParDefaut() : 'matin'
@@ -424,10 +433,10 @@ ${quoi}`)) return
                 <span className={`etiquette ${r.conforme ? 'ok' : 'danger'}`}>
                   {r.conforme ? 'Conforme' : 'Hors zone'}
                 </span>
-                <button type="button" className="discret"
+                <button type="button"
                   aria-label={`Modifier le relevé de ${dateHeureFr(r.date)}`}
                   onClick={() => setReleveEnEdition(r.id)}>
-                  <IconeReglages />
+                  Modifier
                 </button>
                 <button
                   type="button" className="discret"
@@ -444,6 +453,32 @@ ${quoi}`)) return
             ))}
         </div>
       </div>
+
+      {recents.length > 0 && (
+        <div className="carte">
+          <h2>Derniers relevés saisis</h2>
+          <p className="petit doux" style={{ marginTop: 4 }}>
+            Tous jours confondus : c'est ici qu'on retrouve un relevé saisi à la mauvaise date.
+          </p>
+          <div className="liste" style={{ marginTop: 8 }}>
+            {recents.map((r) => (
+              <div key={r.id} className="item">
+                <div className="item-corps">
+                  <div className="item-nom mono">{nombre(r.temp, 1)} °C</div>
+                  <div className="petit doux" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {dateHeureFr(r.date)} · {nomEquipement(r.equipementId)}
+                  </div>
+                </div>
+                <button type="button"
+                  aria-label={`Modifier la date du relevé du ${dateHeureFr(r.date)}`}
+                  onClick={() => { changeJour(r.jour); setReleveEnEdition(r.id) }}>
+                  Modifier la date
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
