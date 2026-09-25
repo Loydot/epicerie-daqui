@@ -75,6 +75,16 @@ export default function Temperatures() {
   /** Les équipements éteints ce jour-là figurent au relevé, au lieu d'y manquer. */
   const eteints = equipements.filter((e) => estEteint(e, jour))
 
+  /** Chaque jour éteint de la période, pour chaque équipement encore suivi. */
+  const joursEteintsSurPeriode = () => {
+    const sortie: Array<{ jour: string; nom: string }> = []
+    for (let n = jours; n >= 0; n--) {
+      const j = decale(aujourd, -n)
+      for (const eq of equipements) if (estEteint(eq, j)) sortie.push({ jour: j, nom: eq.nom })
+    }
+    return sortie
+  }
+
   const historique = [...relevesJour].sort((a, b) => b.date.localeCompare(a.date))
 
   const momentDuJour: Moment = estAujourdhui ? momentParDefaut() : 'matin'
@@ -411,7 +421,7 @@ ${quoi}`)) return
         <div className="ligne-espace">
           <h2>Relevés du {dateFr(jour)}</h2>
           <button type="button" className="discret"
-            onClick={() => exporteTemperaturesCsv(relevesPeriode, nomEquipement)}>
+            onClick={() => exporteTemperaturesCsv(relevesPeriode, nomEquipement, joursEteintsSurPeriode())}>
             <IconeExport /> CSV {jours} j
           </button>
         </div>

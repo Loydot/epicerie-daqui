@@ -55,12 +55,25 @@ export function exporteCatalogueCsv(produits: Produit[]): void {
 export function exporteTemperaturesCsv(
   releves: Releve[],
   nomEquipement: (id: string) => string,
+  /** Jours où un équipement était éteint : ils figurent au fichier, pas en trou. */
+  eteints: Array<{ jour: string; nom: string }> = [],
 ): void {
+  const lignes = [
+    ...releves.map((r) => ({
+      cle: r.date,
+      ligne: [
+        dateHeureFr(r.date), nomEquipement(r.equipementId), r.moment,
+        r.temp, r.conforme ? 'Oui' : 'Non', r.actionCorrective, r.operateur,
+      ],
+    })),
+    ...eteints.map((e) => ({
+      cle: `${e.jour}T00:00`,
+      ligne: [dateFr(e.jour), e.nom, '', 'Éteint', '', 'Équipement éteint ce jour-là', ''],
+    })),
+  ].sort((a, b) => a.cle.localeCompare(b.cle))
+
   csv('temperatures', ['Date', 'Équipement', 'Moment', 'Température', 'Conforme', 'Action corrective', 'Relevé par'],
-    releves.map((r) => [
-      dateHeureFr(r.date), nomEquipement(r.equipementId), r.moment,
-      r.temp, r.conforme ? 'Oui' : 'Non', r.actionCorrective, r.operateur,
-    ]))
+    lignes.map((l) => l.ligne))
 }
 
 export function exporteReceptionsCsv(receptions: Reception[]): void {
