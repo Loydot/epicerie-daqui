@@ -54,6 +54,7 @@ export default function AjoutEquipement({ nombreExistant, premier = false }: Pro
       id: uid(), nom: propre, type,
       tempMin: Math.min(min, max), tempMax: Math.max(min, max),
       actif: 1, ordre: nombreExistant + 1,
+      joursOuverture: '', exceptions: '',
     })
     setOuvert(false)
     setNom('')

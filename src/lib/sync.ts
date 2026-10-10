@@ -1,5 +1,6 @@
 import { db, pendantApplicationDuServeur, TABLES_SYNCHRONISEES, type TableSynchronisee } from '../db/db'
 import { supabase } from './supabase'
+import { versServeur } from './sync-payload'
 
 /**
  * Synchronisation entre la base locale et Supabase.
@@ -49,20 +50,7 @@ const ecritCurseur = (table: string, valeur: string): void => {
   }
 }
 
-const versSnake = (s: string) => s.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`)
 const versCamel = (s: string) => s.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase())
-
-/** Champs purement locaux : ils n'ont rien à faire sur le serveur. */
-const LOCAUX = new Set(['aSynchroniser'])
-
-function versServeur(ligne: Record<string, unknown>): Record<string, unknown> {
-  const sortie: Record<string, unknown> = {}
-  for (const [cle, valeur] of Object.entries(ligne)) {
-    if (LOCAUX.has(cle) || valeur === undefined) continue
-    sortie[versSnake(cle)] = valeur
-  }
-  return sortie
-}
 
 function versLocal(ligne: Record<string, unknown>): Record<string, unknown> {
   const sortie: Record<string, unknown> = {}
@@ -94,7 +82,7 @@ async function envoie(): Promise<number> {
 
     const { error } = await supabase
       .from(distante(nom))
-      .upsert(aEnvoyer.map((l) => versServeur(l as Record<string, unknown>)), {
+      .upsert(aEnvoyer.map((l) => versServeur(nom, l as Record<string, unknown>)), {
         onConflict: CLE_PRIMAIRE[nom],
       })
     if (error) throw new Error(`envoi ${nom} : ${error.message}`)
