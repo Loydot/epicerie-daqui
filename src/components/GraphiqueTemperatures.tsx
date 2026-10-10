@@ -19,6 +19,7 @@ interface Props {
   releves: Releve[]
 }
 
+const HAUTEUR = 150
 const BANDE_AXE = 22
 const MARGE = { haut: 14, droite: 58, bas: BANDE_AXE, gauche: 34 }
 /** Au-dela, les points se chevauchent et forment une bouillie : on ne garde
@@ -28,12 +29,12 @@ const SEUIL_POINTS_VISIBLES = 40
 /** Largeur réelle du conteneur : sans elle, le texte du SVG grossirait avec la carte. */
 function useLargeur(): [React.RefObject<HTMLDivElement | null>, number] {
   const ref = useRef<HTMLDivElement>(null)
-  const [largeur, setLargeur] = useState(180)
+  const [largeur, setLargeur] = useState(320)
   useEffect(() => {
     const element = ref.current
     if (!element) return
     const observateur = new ResizeObserver(([entree]) => {
-      setLargeur(Math.max(150, entree.contentRect.width))
+      setLargeur(Math.max(240, entree.contentRect.width))
     })
     observateur.observe(element)
     return () => observateur.disconnect()
@@ -44,9 +45,6 @@ function useLargeur(): [React.RefObject<HTMLDivElement | null>, number] {
 export default function GraphiqueTemperatures({ equipement, releves }: Props) {
   const [conteneur, largeur] = useLargeur()
   const [survole, setSurvole] = useState<number | null>(null)
-  const hauteur = largeur
-  const margeGauche = largeur < 210 ? 25 : MARGE.gauche
-  const margeDroite = largeur < 210 ? 40 : MARGE.droite
 
   const points = useMemo(
     () => [...releves].sort((a, b) => a.date.localeCompare(b.date)),
@@ -67,15 +65,15 @@ export default function GraphiqueTemperatures({ equipement, releves }: Props) {
     const yHaut = Math.max(equipement.tempMax, ...valeurs)
     const marge = (yHaut - yBas) * 0.18 || 1
 
-    const largeurTrace = largeur - margeGauche - margeDroite
-    const hauteurTrace = hauteur - MARGE.haut - MARGE.bas
+    const largeurTrace = largeur - MARGE.gauche - MARGE.droite
+    const hauteurTrace = HAUTEUR - MARGE.haut - MARGE.bas
 
-    const x = (t: number) => margeGauche + ((t - tMin) / etendueT) * largeurTrace
+    const x = (t: number) => MARGE.gauche + ((t - tMin) / etendueT) * largeurTrace
     const y = (v: number) =>
       MARGE.haut + (1 - (v - (yBas - marge)) / ((yHaut + marge) - (yBas - marge))) * hauteurTrace
 
     return { x, y, temps, tMin, etendueT, largeurTrace }
-  }, [points, equipement, largeur, hauteur, margeGauche, margeDroite])
+  }, [points, equipement, largeur])
 
   if (!points.length || !echelle) {
     return (
@@ -115,9 +113,9 @@ export default function GraphiqueTemperatures({ equipement, releves }: Props) {
   return (
     <div ref={conteneur} className="graphe">
       <svg
-        viewBox={`0 0 ${largeur} ${hauteur}`}
+        viewBox={`0 0 ${largeur} ${HAUTEUR}`}
         width="100%"
-        height={hauteur}
+        height={HAUTEUR}
         role="img"
         aria-label={`Relevés de ${equipement.nom}, zone admise de ${equipement.tempMin} à ${equipement.tempMax} degrés`}
         onPointerMove={surPointeur}
@@ -126,20 +124,20 @@ export default function GraphiqueTemperatures({ equipement, releves }: Props) {
       >
         {/* Zone admise : c'est elle qui donne son sens à la courbe. */}
         <rect
-          x={margeGauche} y={hautBande}
+          x={MARGE.gauche} y={hautBande}
           width={echelle.largeurTrace} height={Math.max(1, basBande - hautBande)}
           fill="var(--graphe-zone)"
         />
-        <line x1={margeGauche} x2={largeur - margeDroite} y1={hautBande} y2={hautBande}
+        <line x1={MARGE.gauche} x2={largeur - MARGE.droite} y1={hautBande} y2={hautBande}
           stroke="var(--graphe-grille)" strokeWidth="1" />
-        <line x1={margeGauche} x2={largeur - margeDroite} y1={basBande} y2={basBande}
+        <line x1={MARGE.gauche} x2={largeur - MARGE.droite} y1={basBande} y2={basBande}
           stroke="var(--graphe-grille)" strokeWidth="1" />
 
-        <text x={margeGauche - 6} y={hautBande + 3} textAnchor="end"
+        <text x={MARGE.gauche - 6} y={hautBande + 3} textAnchor="end"
           fill="var(--texte-doux)" fontSize="9" className="mono">
           {nombre(equipement.tempMax, 0)}
         </text>
-        <text x={margeGauche - 6} y={basBande + 3} textAnchor="end"
+        <text x={MARGE.gauche - 6} y={basBande + 3} textAnchor="end"
           fill="var(--texte-doux)" fontSize="9" className="mono">
           {nombre(equipement.tempMin, 0)}
         </text>
@@ -166,7 +164,7 @@ export default function GraphiqueTemperatures({ equipement, releves }: Props) {
         {actif && (
           <line
             x1={x(new Date(actif.date).getTime())} x2={x(new Date(actif.date).getTime())}
-            y1={MARGE.haut} y2={hauteur - MARGE.bas}
+            y1={MARGE.haut} y2={HAUTEUR - MARGE.bas}
             stroke="var(--graphe-grille)" strokeWidth="1"
           />
         )}
@@ -188,10 +186,10 @@ export default function GraphiqueTemperatures({ equipement, releves }: Props) {
           )
         })()}
 
-        <text x={margeGauche} y={hauteur - 6} fill="var(--texte-doux)" fontSize="9">
+        <text x={MARGE.gauche} y={HAUTEUR - 6} fill="var(--texte-doux)" fontSize="9">
           {new Date(dates[0].date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
         </text>
-        <text x={largeur - margeDroite} y={hauteur - 6} textAnchor="end"
+        <text x={largeur - MARGE.droite} y={HAUTEUR - 6} textAnchor="end"
           fill="var(--texte-doux)" fontSize="9">
           {new Date(dates[1].date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
         </text>

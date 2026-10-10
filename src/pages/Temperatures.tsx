@@ -235,20 +235,6 @@ ${quoi}`)) return
 
       {equipements.length === 0 && <AjoutEquipement nombreExistant={0} premier />}
 
-      {equipements.length > 0 && (
-        <div className="grille-graphes">
-          {equipements.map((eq) => (
-            <div key={`graphe-${eq.id}`} className="carte carte-graphe">
-              <h3>{eq.nom}</h3>
-              <GraphiqueTemperatures
-                equipement={eq}
-                releves={relevesPeriode.filter((r) => r.equipementId === eq.id)}
-              />
-            </div>
-          ))}
-        </div>
-      )}
-
       {equipements.map((eq) => {
         const dejaFaits = relevesJour.filter((r) => r.equipementId === eq.id)
         const brut = (saisies[eq.id] ?? '').replace(',', '.')
@@ -334,6 +320,11 @@ ${quoi}`)) return
                 </button>
               </div>
             )}
+
+            <GraphiqueTemperatures
+              equipement={eq}
+              releves={relevesPeriode.filter((r) => r.equipementId === eq.id)}
+            />
 
             {dejaFaits.length > 0 && (
               <div className="ligne petit doux" style={{ flexWrap: 'wrap' }}>
@@ -502,7 +493,7 @@ ${quoi}`)) return
                 <div className="item-corps">
                   <div className="item-nom mono">{nombre(r.temp, 1)} °C</div>
                   <div className="petit doux" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    Relevé du {dateHeureFr(r.date)} · {nomEquipement(r.equipementId)}
+                    {dateHeureFr(r.date)} · {nomEquipement(r.equipementId)}
                   </div>
                   <div className="petit doux" style={{ fontSize: '0.8em' }}>
                     Enregistré le {dateHeureFr(r.majLe ?? r.date)}
