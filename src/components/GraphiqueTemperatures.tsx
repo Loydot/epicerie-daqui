@@ -19,7 +19,7 @@ interface Props {
   releves: Releve[]
 }
 
-const HAUTEUR = 150
+const HAUTEUR = 160
 const BANDE_AXE = 22
 const MARGE = { haut: 14, droite: 58, bas: BANDE_AXE, gauche: 34 }
 /** Au-dela, les points se chevauchent et forment une bouillie : on ne garde

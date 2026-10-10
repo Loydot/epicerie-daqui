@@ -348,7 +348,15 @@ input[type="number"] { font-variant-numeric: tabular-nums; }
 
 /* ---------- Graphique ---------- */
 /* La regle « svg { width: 20px } » vise les pictogrammes ; le graphique doit y echapper. */
-.graphe { position: relative; }
+.graphe {
+  position: relative;
+  width: min(100%, 440px);
+  margin: 4px auto 0;
+  padding: 6px 10px 2px;
+  border: 1px solid var(--bord);
+  border-radius: 12px;
+  background: var(--surface-2);
+}
 .graphe > svg { width: 100%; height: auto; flex: none; }
 
 .bulle-graphe {
