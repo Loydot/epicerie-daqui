@@ -348,7 +348,11 @@ input[type="number"] { font-variant-numeric: tabular-nums; }
 
 /* ---------- Graphique ---------- */
 /* La regle « svg { width: 20px } » vise les pictogrammes ; le graphique doit y echapper. */
-.graphe { position: relative; }
+.grille-graphes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.carte-graphe { min-width: 0; overflow: hidden; padding: 10px; }
+.carte-graphe + .carte-graphe { margin-top: 0; }
+.carte-graphe h3 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .95rem; }
+.graphe { position: relative; width: 100%; margin-inline: auto; }
 .graphe > svg { width: 100%; height: auto; flex: none; }
 
 .bulle-graphe {
