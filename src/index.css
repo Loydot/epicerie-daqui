@@ -373,6 +373,30 @@ input[type="number"] { font-variant-numeric: tabular-nums; }
   line-height: 1;
 }
 .details-releves[open] > summary::after { content: '−'; }
+.dossiers-editeur > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  list-style: none;
+}
+.dossiers-editeur > summary::-webkit-details-marker { display: none; }
+.dossiers-editeur > summary::after {
+  content: '+';
+  color: var(--texte-doux);
+  font-size: 1.35rem;
+  line-height: 1;
+}
+.dossiers-editeur[open] > summary::after { content: '−'; }
+.dossier-editeur-ligne {
+  display: grid;
+  grid-template-columns: minmax(100px, 1fr) minmax(120px, 2fr) auto;
+  align-items: end;
+  gap: 8px;
+}
+@media (max-width: 560px) {
+  .dossier-editeur-ligne { grid-template-columns: 1fr; }
+}
 
 .bulle-graphe {
   position: absolute; top: 4px; transform: translateX(-50%);

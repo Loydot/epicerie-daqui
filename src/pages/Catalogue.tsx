@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db } from '../db/db'
+import { db, getReglage, setReglage, uid } from '../db/db'
 import { euro, nombre, normalise } from '../lib/format'
 import { IconeBoite, IconeEtiquette, IconeExport, IconeRecherche, IconeScan } from '../components/Icones'
 import { exporteCatalogueCsv } from '../lib/export'
 import { rangSection, SECTIONS } from '../lib/sections'
 import type { Produit, Section } from '../db/types'
+import { dossierDuProduit, litDossiersCatalogue, type DossierCatalogue } from '../lib/dossiers'
 
 type Tri = 'rayon' | 'recent' | 'stock' | 'valeur'
 
@@ -19,35 +20,66 @@ export default function Catalogue() {
   const produits = useLiveQuery(() => db.produits.toArray(), [], undefined)
   const [q, setQ] = useState('')
   const [rayon, setRayon] = useState<Section | ''>('')
+  const [dossier, setDossier] = useState('')
+  const [grouperPar, setGrouperPar] = useState<'rayon' | 'dossier'>('rayon')
+  const [editeDossiers, setEditeDossiers] = useState<DossierCatalogue[] | null>(null)
   const [tri, setTri] = useState<Tri>('rayon')
   const [enCoursPdf, setEnCoursPdf] = useState(false)
   const magasin = useLiveQuery(async () => (await db.reglages.get('magasin'))?.valeur ?? '', [], '') ?? ''
+  const dossiers = useLiveQuery(async () =>
+    litDossiersCatalogue(await getReglage('dossiersCatalogue')),
+  [], []) ?? []
+  const dossiersEditeur = editeDossiers ?? dossiers
+
+  const dossierParProduit = useMemo(() => new Map(
+    (produits ?? []).map((p) => [p.id, dossierDuProduit(p, dossiers)]),
+  ), [produits, dossiers])
 
   const liste = useMemo(() => {
     if (!produits) return []
     const cle = normalise(q)
     const filtres = produits.filter((p) => {
       if (rayon && p.section !== rayon) return false
+      if (dossier === 'sans-dossier' && dossierParProduit.get(p.id)) return false
+      if (dossier && dossier !== 'sans-dossier' && dossierParProduit.get(p.id) !== dossier) return false
       if (!cle) return true
       return normalise(`${p.nom} ${p.marque} ${p.ean} ${p.fournisseur}`).includes(cle)
     })
     const comparateurs: Record<Tri, (a: Produit, b: Produit) => number> = {
       // Rayon d'abord, puis alphabétique : l'ordre dans lequel on parcourt le magasin.
-      rayon: (a, b) => rangSection(a.section) - rangSection(b.section) || parNom(a, b),
+      rayon: (a, b) => {
+        if (grouperPar === 'dossier') {
+          const rang = (id: string) => {
+            const n = dossiers.findIndex((d) => d.id === id)
+            return n < 0 ? dossiers.length : n
+          }
+          return rang(dossierParProduit.get(a.id) ?? '') - rang(dossierParProduit.get(b.id) ?? '') || parNom(a, b)
+        }
+        return rangSection(a.section) - rangSection(b.section) || parNom(a, b)
+      },
       recent: (a, b) => (b.majLe ?? '').localeCompare(a.majLe ?? ''),
       stock: (a, b) => b.stock - a.stock,
       valeur: (a, b) => (b.stock * (b.prixAchat ?? 0)) - (a.stock * (a.prixAchat ?? 0)),
     }
     return filtres.sort(comparateurs[tri])
-  }, [produits, q, rayon, tri])
+  }, [produits, q, rayon, dossier, dossierParProduit, grouperPar, dossiers, tri])
 
-  /** En mode « rayon », la liste est découpée ; sinon elle reste d'un bloc. */
+  /** Regroupe la liste par rayon ou selon les règles des dossiers personnalisés. */
   const groupes = useMemo(() => {
-    if (tri !== 'rayon') return [{ cle: null as Section | null, nom: '', produits: liste }]
+    if (grouperPar === 'dossier') {
+      const groupesDossiers = [
+        ...dossiers.map((d) => ({ cle: d.id, nom: d.nom })),
+        { cle: '', nom: 'Sans dossier' },
+      ]
+      return groupesDossiers
+        .map((g) => ({ ...g, produits: liste.filter((p) => dossierParProduit.get(p.id) === g.cle) }))
+        .filter((g) => g.produits.length > 0)
+    }
+    if (tri !== 'rayon') return [{ cle: null, nom: '', produits: liste }]
     return SECTIONS
       .map((s) => ({ cle: s.cle, nom: s.nom, produits: liste.filter((p) => p.section === s.cle) }))
       .filter((g) => g.produits.length > 0)
-  }, [liste, tri])
+  }, [liste, tri, grouperPar, dossiers, dossierParProduit])
 
   const total = useMemo(() => ({
     references: liste.length,
@@ -72,6 +104,23 @@ export default function Catalogue() {
     } finally {
       setEnCoursPdf(false)
     }
+  }
+
+  const ouvreEditeurDossiers = () => setEditeDossiers(dossiers.map((d) => ({ ...d })))
+  const ajouteDossier = () => setEditeDossiers((anciens) => [
+    ...(anciens ?? dossiers), { id: uid(), nom: '', motsCles: '' },
+  ])
+  const enregistreDossiers = async () => {
+    if (!editeDossiers) return
+    const propres = editeDossiers.map((d) => ({
+      ...d, nom: d.nom.trim(), motsCles: d.motsCles.trim(),
+    }))
+    if (propres.some((d) => !d.nom || !d.motsCles)) {
+      alert('Chaque dossier doit avoir un nom et au moins un mot-clé.')
+      return
+    }
+    await setReglage('dossiersCatalogue', JSON.stringify(propres))
+    setEditeDossiers(null)
   }
 
   if (!produits) return <div className="carte vide">Chargement…</div>
@@ -108,8 +157,61 @@ export default function Catalogue() {
             <option value="stock">Stock décroissant</option>
             <option value="valeur">Valeur de stock</option>
           </select>
+          <select value={grouperPar} onChange={(e) => setGrouperPar(e.target.value as 'rayon' | 'dossier')} aria-label="Regrouper par">
+            <option value="rayon">Afficher par rayon</option>
+            <option value="dossier">Afficher par dossier</option>
+          </select>
+          {dossiers.length > 0 && (
+            <select value={dossier} onChange={(e) => setDossier(e.target.value)} aria-label="Filtrer par dossier">
+              <option value="">Tous les dossiers</option>
+              {dossiers.map((d) => <option key={d.id} value={d.id}>{d.nom}</option>)}
+              <option value="sans-dossier">Sans dossier</option>
+            </select>
+          )}
         </div>
       </div>
+
+      <details className="carte dossiers-editeur">
+        <summary><h2>Mes dossiers personnalisés</h2></summary>
+        <p className="petit doux" style={{ marginTop: 8 }}>
+          Ajoute des mots-clés séparés par des virgules. Un produit rejoint le premier dossier dont un mot-clé apparaît dans son nom, sa marque, son code-barres, son fournisseur ou sa catégorie.
+        </p>
+        {editeDossiers !== null && (
+          <div className="pile" style={{ marginTop: 12 }}>
+            {dossiersEditeur.map((d) => (
+              <div className="dossier-editeur-ligne" key={d.id}>
+                <div>
+                  <label htmlFor={`dossier-nom-${d.id}`}>Nom du dossier</label>
+                  <input id={`dossier-nom-${d.id}`} value={d.nom} placeholder="Boissons"
+                    onChange={(e) => setEditeDossiers((liste) => (liste ?? []).map((x) =>
+                      x.id === d.id ? { ...x, nom: e.target.value } : x,
+                    ))} />
+                </div>
+                <div>
+                  <label htmlFor={`dossier-mots-${d.id}`}>Mots-clés</label>
+                  <input id={`dossier-mots-${d.id}`} value={d.motsCles} placeholder="eau, jus, soda"
+                    onChange={(e) => setEditeDossiers((liste) => (liste ?? []).map((x) =>
+                      x.id === d.id ? { ...x, motsCles: e.target.value } : x,
+                    ))} />
+                </div>
+                <button type="button" className="discret" onClick={() =>
+                  setEditeDossiers((liste) => (liste ?? []).filter((x) => x.id !== d.id))
+                }>Supprimer</button>
+              </div>
+            ))}
+            <div className="ligne" style={{ flexWrap: 'wrap' }}>
+              <button type="button" onClick={ajouteDossier}>Ajouter un dossier</button>
+              <button type="button" className="principal" onClick={() => void enregistreDossiers()}>Enregistrer</button>
+              <button type="button" className="discret" onClick={() => setEditeDossiers(null)}>Annuler</button>
+            </div>
+          </div>
+        )}
+        {editeDossiers === null && (
+          <button type="button" style={{ marginTop: 12 }} onClick={ouvreEditeurDossiers}>
+            {dossiers.length ? 'Modifier mes dossiers' : 'Créer mes dossiers'}
+          </button>
+        )}
+      </details>
 
       <div className="tuiles">
         <div className="tuile">
@@ -152,7 +254,7 @@ export default function Catalogue() {
         ) : (
           groupes.map((groupe) => (
             <section key={groupe.cle ?? 'tout'}>
-              {groupe.cle && (
+              {groupe.cle !== null && groupe.cle !== undefined && (
                 <div className="entete-rayon">
                   <span className="section-titre" style={{ margin: 0 }}>{groupe.nom}</span>
                   <span className="petit doux mono">
