@@ -358,6 +358,21 @@ input[type="number"] { font-variant-numeric: tabular-nums; }
   background: var(--surface-2);
 }
 .graphe > svg { width: 100%; height: auto; flex: none; }
+.details-releves > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  list-style: none;
+}
+.details-releves > summary::-webkit-details-marker { display: none; }
+.details-releves > summary::after {
+  content: '+';
+  color: var(--texte-doux);
+  font-size: 1.35rem;
+  line-height: 1;
+}
+.details-releves[open] > summary::after { content: '−'; }
 
 .bulle-graphe {
   position: absolute; top: 4px; transform: translateX(-50%);

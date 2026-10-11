@@ -482,9 +482,9 @@ ${quoi}`)) return
       </div>
 
       {recents.length > 0 && (
-        <div className="carte">
-          <h2>Derniers relevés saisis</h2>
-          <p className="petit doux" style={{ marginTop: 4 }}>
+        <details className="carte details-releves">
+          <summary><h2>Derniers relevés saisis</h2></summary>
+          <p className="petit doux" style={{ marginTop: 8 }}>
             Tous jours confondus : c'est ici qu'on retrouve un relevé saisi à la mauvaise date.
           </p>
           <div className="liste" style={{ marginTop: 8 }}>
@@ -507,7 +507,7 @@ ${quoi}`)) return
               </div>
             ))}
           </div>
-        </div>
+        </details>
       )}
     </div>
   )
