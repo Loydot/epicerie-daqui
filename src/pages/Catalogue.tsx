@@ -21,7 +21,7 @@ export default function Catalogue() {
   const [q, setQ] = useState('')
   const [rayon, setRayon] = useState<Section | ''>('')
   const [dossier, setDossier] = useState('')
-  const [grouperPar, setGrouperPar] = useState<'rayon' | 'dossier'>('rayon')
+  const [choixGroupe, setChoixGroupe] = useState<'rayon' | 'dossier' | null>(null)
   const [editeDossiers, setEditeDossiers] = useState<DossierCatalogue[] | null>(null)
   const [tri, setTri] = useState<Tri>('rayon')
   const [enCoursPdf, setEnCoursPdf] = useState(false)
@@ -29,6 +29,7 @@ export default function Catalogue() {
   const dossiers = useLiveQuery(async () =>
     litDossiersCatalogue(await getReglage('dossiersCatalogue')),
   [], []) ?? []
+  const grouperPar = choixGroupe ?? (dossiers.length > 0 ? 'dossier' : 'rayon')
   const dossiersEditeur = editeDossiers ?? dossiers
 
   const dossierParProduit = useMemo(() => new Map(
@@ -120,6 +121,7 @@ export default function Catalogue() {
       return
     }
     await setReglage('dossiersCatalogue', JSON.stringify(propres))
+    setChoixGroupe('dossier')
     setEditeDossiers(null)
   }
 
@@ -157,7 +159,7 @@ export default function Catalogue() {
             <option value="stock">Stock décroissant</option>
             <option value="valeur">Valeur de stock</option>
           </select>
-          <select value={grouperPar} onChange={(e) => setGrouperPar(e.target.value as 'rayon' | 'dossier')} aria-label="Regrouper par">
+          <select value={grouperPar} onChange={(e) => setChoixGroupe(e.target.value as 'rayon' | 'dossier')} aria-label="Regrouper par">
             <option value="rayon">Afficher par rayon</option>
             <option value="dossier">Afficher par dossier</option>
           </select>
