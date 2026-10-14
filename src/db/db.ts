@@ -1,6 +1,6 @@
 import Dexie, { type EntityTable, type Table } from 'dexie'
 import type {
-  Client, Commande, Equipement, LigneCommande, Lot, Nettoyage, Operateur, Produit,
+  Client, Commande, Equipement, Facture, LigneCommande, Lot, Nettoyage, Operateur, Produit,
   Reception, Reglage, Releve, Suppression, Tache,
 } from './types'
 
@@ -8,7 +8,7 @@ import type {
 export const TABLES_SYNCHRONISEES = [
   'produits', 'equipements', 'releves', 'receptions', 'lots',
   'taches', 'nettoyages', 'operateurs', 'reglages',
-  'clients', 'commandes', 'lignesCommande',
+  'clients', 'commandes', 'lignesCommande', 'factures',
 ] as const
 
 export type TableSynchronisee = typeof TABLES_SYNCHRONISEES[number]
@@ -42,6 +42,7 @@ class HaccpDb extends Dexie {
   clients!: EntityTable<Client, 'id'>
   commandes!: EntityTable<Commande, 'id'>
   lignesCommande!: EntityTable<LigneCommande, 'id'>
+  factures!: EntityTable<Facture, 'id'>
   suppressions!: EntityTable<Suppression, 'id'>
 
   constructor() {
@@ -118,6 +119,11 @@ class HaccpDb extends Dexie {
         c.mode ??= 'retrait'
         c.adresseLivraison ??= ''
       })
+    })
+
+    // v7 : factures.
+    this.version(7).stores({
+      factures: 'id, numero, date, aSynchroniser',
     })
 
     this.brancheLesCrochets()

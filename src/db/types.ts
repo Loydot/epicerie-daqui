@@ -211,3 +211,42 @@ export interface Reglage extends Synchronisable {
   cle: string
   valeur: string
 }
+
+/* ------------------------------------ factures ------------------------------------ */
+
+export interface LigneFacture {
+  libelle: string
+  quantite: number
+  /** Prix unitaire hors taxe, en euros. */
+  prixHT: number
+  /** Taux de TVA en %. */
+  tva: number
+}
+
+export interface Facture extends Synchronisable {
+  id: Id
+  /** Numéro unique et continu, ex. 2026-0001. */
+  numero: string
+  /** Date d'émission, AAAA-MM-JJ. */
+  date: string
+  /** Date de la vente ou de la livraison, si elle diffère. AAAA-MM-JJ ou vide. */
+  dateVente: string
+  /** Date limite de paiement, AAAA-MM-JJ ou vide. */
+  echeance: string
+  clientNom: string
+  clientAdresse: string
+  clientCodePostal: string
+  clientVille: string
+  clientTelephone: string
+  clientEmail: string
+  /** Pour un client professionnel. */
+  clientSiret: string
+  clientTva: string
+  /** Lignes en JSON (LigneFacture[]) : la facture forme un tout, synchronisé d'un bloc. */
+  lignes: string
+  modePaiement: string
+  /** 1 quand la facture est réglée. */
+  acquittee: number
+  note: string
+  creeLe: string
+}

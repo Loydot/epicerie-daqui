@@ -6,7 +6,8 @@ import { dateFr, dateHeureFr, euro, jourDe, marge, nombre } from './format'
 import { nomSection } from './sections'
 import { texteEtiquettePum } from './mesure'
 import { logoPourPdf, RAPPORT } from './logo'
-import type { Commande, LigneCommande } from '../db/types'
+import type { Commande, Facture, LigneCommande, LigneFacture } from '../db/types'
+import { totaux, type Entreprise } from './factures'
 import { motRemise, nomStatut, totalLignes } from './commandes'
 
 const MARGE = 14
@@ -389,4 +390,125 @@ export async function bonDeCommandePdf(d: DonneesBon): Promise<void> {
 
   piedDePage(doc)
   doc.save(`bon-${livraison ? 'livraison' : 'commande'}-${(d.client.nom || 'client').replace(/[^a-zA-Z0-9]+/g, '-').toLowerCase()}-${jourDe()}.pdf`)
+}
+
+/* ------------------------- Facture ------------------------- */
+
+/**
+ * Facture conforme aux mentions obligatoires : vendeur identifié (SIRET, TVA…),
+ * client, numéro unique, prix unitaires HT, TVA par taux, totaux, conditions.
+ */
+export async function facturePdf(f: Facture, lignes: LigneFacture[], e: Entreprise): Promise<void> {
+  const doc = new jsPDF()
+  const logo = await logoPourPdf()
+  const franchise = e.franchiseTva === '1'
+  const t = totaux(lignes, franchise)
+  const largeur = doc.internal.pageSize.getWidth()
+  const droite = largeur - MARGE
+
+  const y = entete(
+    doc, `Facture n° ${f.numero}`, e.raisonSociale,
+    `Date : ${dateFr(f.date)}${f.dateVente && f.dateVente !== f.date ? ` · Vente du ${dateFr(f.dateVente)}` : ''}`,
+    logo,
+  )
+
+  // Vendeur à gauche, client à droite.
+  const vendeur = [
+    [e.raisonSociale, e.formeJuridique].filter(Boolean).join(' — '),
+    e.adresse,
+    [e.codePostal, e.ville].filter(Boolean).join(' '),
+    e.telephone && `Tél. ${e.telephone}`,
+    e.email,
+    e.siret && `SIRET ${e.siret}`,
+    e.rcs,
+    e.capital && `Capital ${e.capital}`,
+    e.tvaIntra && `TVA ${e.tvaIntra}`,
+  ].filter(Boolean) as string[]
+
+  const client = [
+    f.clientAdresse,
+    [f.clientCodePostal, f.clientVille].filter(Boolean).join(' '),
+    f.clientTelephone && `Tél. ${f.clientTelephone}`,
+    f.clientEmail,
+    f.clientSiret && `SIRET ${f.clientSiret}`,
+    f.clientTva && `TVA ${f.clientTva}`,
+  ].filter(Boolean) as string[]
+
+  doc.setFont('helvetica', 'bold').setFontSize(9).setTextColor(...GRIS)
+  doc.text('VENDEUR', MARGE, y + 6)
+  doc.text('CLIENT', largeur / 2 + 6, y + 6)
+
+  doc.setFont('helvetica', 'normal').setFontSize(9.5).setTextColor(30)
+  vendeur.forEach((l, i) => doc.text(l, MARGE, y + 12 + i * 4.8))
+
+  doc.setFont('helvetica', 'bold').setFontSize(11).setTextColor(20)
+  doc.text(f.clientNom || '—', largeur / 2 + 6, y + 12)
+  doc.setFont('helvetica', 'normal').setFontSize(9.5).setTextColor(30)
+  client.forEach((l, i) => doc.text(l, largeur / 2 + 6, y + 17.5 + i * 4.8))
+
+  const debut = y + 16 + Math.max(vendeur.length, client.length + 1) * 4.8
+
+  const taux = (n: number) => `${String(n).replace('.', ',')} %`
+  autoTable(doc, {
+    ...styleTable,
+    startY: debut,
+    head: [franchise
+      ? ['Désignation', 'Qté', 'Prix unitaire', 'Total']
+      : ['Désignation', 'Qté', 'Prix unit. HT', 'TVA', 'Total HT']],
+    columnStyles: franchise
+      ? { 1: { cellWidth: 18, halign: 'right' }, 2: { cellWidth: 30, halign: 'right' }, 3: { cellWidth: 30, halign: 'right' } }
+      : {
+        1: { cellWidth: 16, halign: 'right' }, 2: { cellWidth: 28, halign: 'right' },
+        3: { cellWidth: 18, halign: 'right' }, 4: { cellWidth: 28, halign: 'right' },
+      },
+    body: lignes.map((l) => {
+      const base = [l.libelle, nombre(l.quantite, Number.isInteger(l.quantite) ? 0 : 2), euro(l.prixHT)]
+      const total = euro(Math.round(l.quantite * l.prixHT * 100) / 100)
+      return franchise ? [...base, total] : [...base, taux(l.tva), total]
+    }),
+  })
+
+  let fin = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8
+
+  // Récapitulatif aligné à droite.
+  const recap: Array<[string, string, boolean?]> = [['Total HT', euro(t.ht)]]
+  if (!franchise) for (const d of t.parTaux) recap.push([`TVA ${taux(d.taux)} sur ${euro(d.base)}`, euro(d.montant)])
+  recap.push(['Total TTC', euro(t.ttc), true])
+  for (const [libelle, valeur, fort] of recap) {
+    doc.setFont('helvetica', fort ? 'bold' : 'normal').setFontSize(fort ? 11 : 9.5).setTextColor(20)
+    doc.text(libelle, droite - 45, fin, { align: 'right' })
+    doc.text(valeur, droite, fin, { align: 'right' })
+    fin += fort ? 7 : 5.5
+  }
+  if (franchise) {
+    doc.setFont('helvetica', 'italic').setFontSize(9).setTextColor(...GRIS)
+    doc.text('TVA non applicable, art. 293 B du CGI', droite, fin, { align: 'right' })
+    fin += 6
+  }
+
+  if (f.acquittee) {
+    doc.setFont('helvetica', 'bold').setFontSize(12).setTextColor(30, 130, 70)
+    doc.text(`ACQUITTÉE${f.modePaiement ? ` — ${f.modePaiement}` : ''}`, MARGE, fin)
+    fin += 8
+  }
+
+  const bas: string[] = []
+  if (f.echeance) bas.push(`Échéance : ${dateFr(f.echeance)}.`)
+  if (f.modePaiement && !f.acquittee) bas.push(`Mode de paiement : ${f.modePaiement}.`)
+  if (e.conditionsPaiement) bas.push(e.conditionsPaiement)
+  if (e.iban) bas.push(`IBAN : ${e.iban}${e.bic ? ` — BIC : ${e.bic}` : ''}`)
+  if (f.note) bas.push(f.note)
+  if (e.mentions) bas.push(e.mentions)
+
+  doc.setFont('helvetica', 'normal').setFontSize(8.5).setTextColor(...GRIS)
+  for (const texte of bas) {
+    const l = doc.splitTextToSize(texte, largeur - 2 * MARGE)
+    if (fin + l.length * 4 > doc.internal.pageSize.getHeight() - 15) { doc.addPage(); fin = 20 }
+    doc.text(l, MARGE, fin)
+    fin += l.length * 4 + 2
+  }
+
+  piedDePage(doc)
+  const nom = (f.clientNom || 'client').normalize('NFD').replace(/[^a-zA-Z0-9]+/g, '-').toLowerCase()
+  doc.save(`facture-${f.numero}-${nom}.pdf`)
 }

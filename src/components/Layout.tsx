@@ -5,7 +5,7 @@ import { aujourdhui, joursRestants } from '../lib/format'
 import { estEteint } from '../lib/ouverture'
 import {
   IconeAccueil, IconeCatalogue, IconeRegistre, IconeReglages, IconeRetour,
-  IconeScan, IconeTemperature,
+  IconeEtiquette, IconeScan, IconeTemperature,
 } from './Icones'
 import Logo from './Logo'
 
@@ -15,6 +15,7 @@ const ONGLETS = [
   { to: '/catalogue', libelle: 'Catalogue', Icone: IconeCatalogue },
   { to: '/controles', libelle: 'Contrôles', Icone: IconeTemperature, alertes: true },
   { to: '/commandes', libelle: 'Commandes', Icone: IconeRegistre },
+  { to: '/factures', libelle: 'Factures', Icone: IconeEtiquette },
 ]
 
 /** Nombre de points rouges a afficher sur l'onglet Contrôles. */
@@ -46,6 +47,8 @@ const TITRES: Array<[RegExp, string]> = [
   [/^\/registres/, 'Registres'],
   [/^\/commandes$/, 'Commandes'],
   [/^\/commande\//, 'Commande'],
+  [/^\/factures/, 'Factures'],
+  [/^\/facture\//, 'Facture'],
   [/^\/reglages/, 'Réglages'],
 ]
 
