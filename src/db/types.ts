@@ -215,9 +215,11 @@ export interface Reglage extends Synchronisable {
 /* ------------------------------------ factures ------------------------------------ */
 
 export interface LigneFacture {
+  /** Produit du catalogue d'origine ; absent pour une ligne libre. */
+  produitId?: Id
   libelle: string
   quantite: number
-  /** Prix unitaire hors taxe, en euros. */
+  /** Prix unitaire hors taxe, en euros (4 décimales, pour retomber juste sur le TTC). */
   prixHT: number
   /** Taux de TVA en %. */
   tva: number

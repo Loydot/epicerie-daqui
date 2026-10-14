@@ -7,12 +7,18 @@ import { euro, normalise } from '../lib/format'
 import {
   ENTREPRISE_DEFAUT, litEntreprise, litLignes, MODES_PAIEMENT, TAUX_TVA, totaux,
 } from '../lib/factures'
-import { IconeBoite, IconeCorbeille, IconeExport, IconePlus, IconeRecherche } from '../components/Icones'
+import { IconeBoite, IconeCorbeille, IconeExport, IconePlus, IconeRecherche, IconeScan } from '../components/Icones'
+import Scanner from '../components/Scanner'
+import type { Produit } from '../db/types'
 
 /** Le moteur PDF pèse plusieurs centaines de Ko : chargé seulement au clic. */
 const chargePdf = () => import('../lib/pdf')
 
 const arrondi = (n: number) => Math.round(n * 100) / 100
+
+/** Le prix de l'épicerie est TTC : on en déduit le HT, gardé précis pour retomber juste. */
+const versHT = (ttc: number, tva: number) => Math.round((ttc / (1 + tva / 100)) * 10000) / 10000
+const versTTC = (ht: number, tva: number) => arrondi(ht * (1 + tva / 100))
 
 /** Accepte la virgule, comme on l'écrit en France. */
 const versNombre = (s: string): number => {
@@ -24,6 +30,9 @@ export default function FactureDetail() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
   const [recherche, setRecherche] = useState('')
+  const [parcourir, setParcourir] = useState(false)
+  const [scan, setScan] = useState(false)
+  const [message, setMessage] = useState('')
 
   const facture = useLiveQuery(() => db.factures.get(id), [id], undefined)
   const produits = useLiveQuery(() => db.produits.toArray(), [], []) ?? []
@@ -37,11 +46,17 @@ export default function FactureDetail() {
 
   const resultats = useMemo(() => {
     const cle = normalise(recherche)
-    if (!cle) return []
+    if (!cle && !parcourir) return []
+    // Chaque mot doit se retrouver quelque part : « nutella 400 » trouve le bon pot.
+    const mots = cle.split(/\s+/).filter(Boolean)
     return produits
-      .filter((p) => normalise(`${p.nom} ${p.marque} ${p.ean}`).includes(cle))
-      .slice(0, 6)
-  }, [produits, recherche])
+      .filter((p) => {
+        const texte = normalise(`${p.nom} ${p.marque} ${p.contenance} ${p.ean} ${p.rayon} ${p.fournisseur}`)
+        return mots.every((m) => texte.includes(m))
+      })
+      .sort((a, b) => a.nom.localeCompare(b.nom, 'fr'))
+      .slice(0, cle ? 30 : 300)
+  }, [produits, recherche, parcourir])
 
   if (facture === undefined) return <div className="carte vide">Chargement…</div>
   if (facture === null) {
@@ -57,11 +72,29 @@ export default function FactureDetail() {
   const majLigne = (i: number, modifs: Partial<LigneFacture>) =>
     majLignes(lignes.map((l, j) => (j === i ? { ...l, ...modifs } : l)))
 
-  const ajouteProduit = (nom: string, prixTTC: number | null, tva: number) => {
-    // Le catalogue connaît le prix TTC ; la facture part du prix HT.
-    const prixHT = prixTTC == null ? 0 : arrondi(prixTTC / (1 + tva / 100))
-    majLignes([...lignes, { libelle: nom, quantite: 1, prixHT, tva }])
+  const ajouteProduit = (p: Produit) => {
+    const deja = lignes.findIndex((l) => l.produitId === p.id)
+    if (deja >= 0) {
+      // Déjà sur la facture : on ajoute une unité plutôt qu'une seconde ligne.
+      majLigne(deja, { quantite: lignes[deja].quantite + 1 })
+    } else {
+      const tva = p.tva ?? 5.5
+      const libelle = [p.nom, p.marque, p.contenance].filter(Boolean).join(' — ')
+      majLignes([...lignes, {
+        produitId: p.id, libelle, quantite: 1, tva,
+        prixHT: p.prixVente == null ? 0 : versHT(p.prixVente, tva),
+      }])
+    }
+    setMessage(p.prixVente == null
+      ? `${p.nom} ajouté — pas de prix dans le catalogue, saisissez-le ci-dessous.`
+      : `${p.nom} ajouté.`)
     setRecherche('')
+  }
+
+  const surCode = (code: string) => {
+    const p = produits.find((x) => x.ean === code)
+    if (p) ajouteProduit(p)
+    else setMessage(`Code ${code} absent du catalogue.`)
   }
 
   const supprime = async () => {
@@ -124,68 +157,107 @@ export default function FactureDetail() {
       <div className="carte pile">
         <h2>Articles</h2>
 
-        {lignes.map((l, i) => (
-          <div key={`${i}:${lignes.length}:${l.quantite}:${l.prixHT}`} className="pile" style={{ borderBottom: '1px solid var(--bord)', paddingBottom: 10 }}>
-            <div className="ligne">
-              <input className="champ" value={l.libelle} placeholder="Désignation"
-                onChange={(e) => majLigne(i, { libelle: e.target.value })} />
-              <button type="button" className="discret" aria-label="Retirer la ligne"
-                onClick={() => majLignes(lignes.filter((_, j) => j !== i))}>
-                <IconeCorbeille />
-              </button>
-            </div>
-            <div className="deux-champs">
-              <div>
-                <label>Quantité</label>
-                <input type="text" inputMode="decimal" className="mono"
-                  defaultValue={String(l.quantite).replace('.', ',')}
-                  onBlur={(e) => majLigne(i, { quantite: versNombre(e.target.value) })} />
-              </div>
-              <div>
-                <label>Prix unitaire HT</label>
-                <input type="text" inputMode="decimal" className="mono"
-                  defaultValue={String(l.prixHT).replace('.', ',')}
-                  onBlur={(e) => majLigne(i, { prixHT: versNombre(e.target.value) })} />
-              </div>
-            </div>
-            <div className="ligne-espace">
-              {franchise ? <span className="petit doux">Sans TVA</span> : (
-                <select value={l.tva} style={{ width: 'auto' }}
-                  onChange={(e) => majLigne(i, { tva: Number(e.target.value) })}>
-                  {TAUX_TVA.map((taux) => (
-                    <option key={taux} value={taux}>TVA {String(taux).replace('.', ',')} %</option>
-                  ))}
-                </select>
-              )}
-              <span className="mono" style={{ fontWeight: 600 }}>
-                {euro(arrondi(l.quantite * l.prixHT))} HT
-              </span>
-            </div>
-          </div>
-        ))}
-
         <div className="ligne">
           <IconeRecherche className="doux" />
-          <input className="champ" placeholder="Ajouter un produit du catalogue…" value={recherche}
-            onChange={(e) => setRecherche(e.target.value)} autoComplete="off" />
+          <input className="champ" placeholder="Chercher : nom, marque, code-barres…"
+            value={recherche} onChange={(e) => setRecherche(e.target.value)} autoComplete="off" />
+          <button type="button" className={scan ? 'principal' : ''} aria-label="Scanner un code-barres"
+            onClick={() => setScan(!scan)}>
+            <IconeScan />
+          </button>
         </div>
+        {scan && <Scanner surCode={surCode} />}
+        {!recherche && (
+          <button type="button" className="large" onClick={() => setParcourir(!parcourir)}>
+            {parcourir ? 'Masquer le catalogue' : `Parcourir tout le catalogue (${produits.length})`}
+          </button>
+        )}
+        {message && <p className="petit doux">{message}</p>}
+
         {resultats.length > 0 && (
-          <div className="liste">
+          <div className="liste" style={{ maxHeight: 360, overflowY: 'auto' }}>
             {resultats.map((p) => (
-              <button key={p.id} type="button" className="item"
-                onClick={() => ajouteProduit(p.nom, p.prixVente, p.tva ?? 5.5)}>
+              <button key={p.id} type="button" className="item" onClick={() => ajouteProduit(p)}>
                 <div className="item-corps">
                   <div className="item-nom">{p.nom}</div>
-                  <div className="petit doux">{p.marque}</div>
+                  <div className="petit doux">
+                    {[p.marque, p.contenance].filter(Boolean).join(' · ')}
+                    {!franchise && ` · TVA ${String(p.tva ?? 5.5).replace('.', ',')} %`}
+                  </div>
                 </div>
-                <span className="mono">{euro(p.prixVente)} TTC</span>
+                <div style={{ textAlign: 'right' }}>
+                  <div className="mono" style={{ fontWeight: 600 }}>
+                    {p.prixVente == null ? 'sans prix' : euro(p.prixVente)}
+                  </div>
+                  <div className="petit doux">+ Ajouter</div>
+                </div>
               </button>
             ))}
           </div>
         )}
+        {recherche && resultats.length === 0 && <p className="petit doux">Aucun produit trouvé.</p>}
+
+        {lignes.map((l, i) => {
+          const taux = franchise ? 0 : l.tva
+          const ttc = versTTC(l.prixHT, taux)
+          const totalHT = arrondi(l.quantite * l.prixHT)
+          return (
+            <div key={`${i}:${lignes.length}:${l.quantite}:${l.prixHT}:${l.tva}`} className="pile"
+              style={{ borderTop: '1px solid var(--bord)', paddingTop: 10 }}>
+              <div className="ligne">
+                <input className="champ" value={l.libelle} placeholder="Désignation"
+                  onChange={(e) => majLigne(i, { libelle: e.target.value })} />
+                <button type="button" className="discret" aria-label="Retirer la ligne"
+                  onClick={() => majLignes(lignes.filter((_, j) => j !== i))}>
+                  <IconeCorbeille />
+                </button>
+              </div>
+              <div className="deux-champs">
+                <div>
+                  <label>Quantité</label>
+                  <div className="ligne">
+                    <button type="button" aria-label="Moins"
+                      onClick={() => majLigne(i, { quantite: Math.max(0, l.quantite - 1) })}>−</button>
+                    <input type="text" inputMode="decimal" className="mono champ"
+                      style={{ textAlign: 'center', minWidth: 0 }}
+                      defaultValue={String(l.quantite).replace('.', ',')}
+                      onBlur={(e) => majLigne(i, { quantite: versNombre(e.target.value) })} />
+                    <button type="button" aria-label="Plus"
+                      onClick={() => majLigne(i, { quantite: l.quantite + 1 })}>+</button>
+                  </div>
+                </div>
+                <div>
+                  <label>{franchise ? 'Prix unitaire' : 'Prix unitaire TTC'}</label>
+                  <input type="text" inputMode="decimal" className="mono"
+                    defaultValue={ttc.toFixed(2).replace('.', ',')}
+                    onBlur={(e) => majLigne(i, { prixHT: versHT(versNombre(e.target.value), taux) })} />
+                </div>
+              </div>
+              <div className="ligne-espace">
+                {franchise ? <span className="petit doux">Sans TVA</span> : (
+                  <select value={l.tva} style={{ width: 'auto' }}
+                    onChange={(e) => {
+                      // Le prix affiché en rayon ne bouge pas : seul le HT est recalculé.
+                      const tva = Number(e.target.value)
+                      majLigne(i, { tva, prixHT: versHT(ttc, tva) })
+                    }}>
+                    {TAUX_TVA.map((t) => (
+                      <option key={t} value={t}>TVA {String(t).replace('.', ',')} %</option>
+                    ))}
+                  </select>
+                )}
+                <span className="mono" style={{ textAlign: 'right' }}>
+                  <strong>{euro(versTTC(totalHT, taux))}</strong>
+                  {!franchise && <span className="petit doux" style={{ display: 'block' }}>{euro(totalHT)} HT</span>}
+                </span>
+              </div>
+            </div>
+          )
+        })}
+
         <button type="button" className="large"
           onClick={() => majLignes([...lignes, { libelle: '', quantite: 1, prixHT: 0, tva: 5.5 }])}>
-          <IconePlus /> Ligne libre
+          <IconePlus /> Ligne libre (hors catalogue)
         </button>
       </div>
 
