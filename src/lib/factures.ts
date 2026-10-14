@@ -41,11 +41,8 @@ export const ENTREPRISE_DEFAUT: Entreprise = {
   franchiseTva: '',
   iban: '',
   bic: '',
-  conditionsPaiement: 'Paiement à réception de facture.',
-  mentions:
-    "En cas de retard de paiement : pénalités au taux de 3 fois le taux d'intérêt légal. "
-    + 'Pour les professionnels : indemnité forfaitaire pour frais de recouvrement de 40 €. '
-    + "Pas d'escompte pour paiement anticipé.",
+  conditionsPaiement: '',
+  mentions: '',
 }
 
 export const CHAMPS_ENTREPRISE = Object.keys(ENTREPRISE_DEFAUT) as Array<keyof Entreprise>
