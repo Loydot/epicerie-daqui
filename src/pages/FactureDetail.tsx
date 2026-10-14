@@ -120,7 +120,7 @@ export default function FactureDetail() {
     <div className="pile">
       <div className="carte pile">
         <h2>Facture</h2>
-        <div className="deux-champs">
+        <div className="f-grille">
           {champ('numero', 'Numéro', { className: 'mono' })}
           {champ('date', "Date d'émission", { type: 'date' })}
         </div>
@@ -129,7 +129,7 @@ export default function FactureDetail() {
             Ce numéro existe déjà sur une autre facture : chaque numéro doit être unique.
           </p>
         )}
-        <div className="deux-champs">
+        <div className="f-grille">
           {champ('dateVente', 'Date de la vente (si différente)', { type: 'date' })}
           {champ('echeance', 'Échéance de paiement', { type: 'date' })}
         </div>
@@ -139,16 +139,16 @@ export default function FactureDetail() {
         <h2>Client</h2>
         {champ('clientNom', 'Nom ou raison sociale', { autoComplete: 'off' })}
         {champ('clientAdresse', 'Adresse')}
-        <div className="deux-champs">
+        <div className="f-cp">
           {champ('clientCodePostal', 'Code postal', { inputMode: 'numeric', className: 'mono' })}
           {champ('clientVille', 'Ville')}
         </div>
-        <div className="deux-champs">
+        <div className="f-grille">
           {champ('clientTelephone', 'Téléphone', { type: 'tel', className: 'mono' })}
           {champ('clientEmail', 'E-mail', { type: 'email' })}
         </div>
         <p className="petit doux">Pour un client professionnel :</p>
-        <div className="deux-champs">
+        <div className="f-grille">
           {champ('clientSiret', 'SIRET', { className: 'mono' })}
           {champ('clientTva', 'N° TVA intracom.', { className: 'mono' })}
         </div>
@@ -202,24 +202,23 @@ export default function FactureDetail() {
           const ttc = versTTC(l.prixHT, taux)
           const totalHT = arrondi(l.quantite * l.prixHT)
           return (
-            <div key={`${i}:${lignes.length}:${l.quantite}:${l.prixHT}:${l.tva}`} className="pile"
-              style={{ borderTop: '1px solid var(--bord)', paddingTop: 10 }}>
+            <div key={`${i}:${lignes.length}:${l.quantite}:${l.prixHT}:${l.tva}`} className="pile f-ligne">
               <div className="ligne">
-                <input className="champ" value={l.libelle} placeholder="Désignation"
+                <textarea className="champ" rows={2} value={l.libelle} placeholder="Désignation"
+                  style={{ minHeight: 0, resize: 'none', fontWeight: 600 }}
                   onChange={(e) => majLigne(i, { libelle: e.target.value })} />
                 <button type="button" className="discret" aria-label="Retirer la ligne"
                   onClick={() => majLignes(lignes.filter((_, j) => j !== i))}>
                   <IconeCorbeille />
                 </button>
               </div>
-              <div className="deux-champs">
+              <div className="f-chiffres">
                 <div>
                   <label>Quantité</label>
-                  <div className="ligne">
+                  <div className="f-stepper">
                     <button type="button" aria-label="Moins"
                       onClick={() => majLigne(i, { quantite: Math.max(0, l.quantite - 1) })}>−</button>
-                    <input type="text" inputMode="decimal" className="mono champ"
-                      style={{ textAlign: 'center', minWidth: 0 }}
+                    <input type="text" inputMode="decimal" className="mono" aria-label="Quantité"
                       defaultValue={String(l.quantite).replace('.', ',')}
                       onBlur={(e) => majLigne(i, { quantite: versNombre(e.target.value) })} />
                     <button type="button" aria-label="Plus"
@@ -227,7 +226,7 @@ export default function FactureDetail() {
                   </div>
                 </div>
                 <div>
-                  <label>{franchise ? 'Prix unitaire' : 'Prix unitaire TTC'}</label>
+                  <label>{franchise ? 'Prix unitaire' : 'Prix unit. TTC'}</label>
                   <input type="text" inputMode="decimal" className="mono"
                     defaultValue={ttc.toFixed(2).replace('.', ',')}
                     onBlur={(e) => majLigne(i, { prixHT: versHT(versNombre(e.target.value), taux) })} />
@@ -246,7 +245,7 @@ export default function FactureDetail() {
                     ))}
                   </select>
                 )}
-                <span className="mono" style={{ textAlign: 'right' }}>
+                <span className="mono f-total">
                   <strong>{euro(versTTC(totalHT, taux))}</strong>
                   {!franchise && <span className="petit doux" style={{ display: 'block' }}>{euro(totalHT)} HT</span>}
                 </span>
