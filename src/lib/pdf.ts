@@ -7,7 +7,7 @@ import { nomSection } from './sections'
 import { texteEtiquettePum } from './mesure'
 import { logoPourPdf, RAPPORT } from './logo'
 import type { Commande, Facture, LigneCommande, LigneFacture } from '../db/types'
-import { totaux, type Entreprise } from './factures'
+import { montantsLigne, totaux, type Entreprise } from './factures'
 import { motRemise, nomStatut, totalLignes } from './commandes'
 
 const MARGE = 14
@@ -463,7 +463,8 @@ export async function facturePdf(f: Facture, lignes: LigneFacture[], e: Entrepri
       },
     body: lignes.map((l) => {
       const base = [l.libelle, nombre(l.quantite, Number.isInteger(l.quantite) ? 0 : 2), euro(l.prixHT)]
-      const total = euro(Math.round(l.quantite * l.prixHT * 100) / 100)
+      const m = montantsLigne(l, franchise)
+      const total = euro(franchise ? m.ttc : m.ht)
       return franchise ? [...base, total] : [...base, taux(l.tva), total]
     }),
   })

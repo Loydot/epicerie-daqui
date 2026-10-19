@@ -5,7 +5,7 @@ import { db } from '../db/db'
 import type { Facture, LigneFacture } from '../db/types'
 import { euro, normalise } from '../lib/format'
 import {
-  ENTREPRISE_DEFAUT, litEntreprise, litLignes, MODES_PAIEMENT, TAUX_TVA, totaux,
+  ENTREPRISE_DEFAUT, litEntreprise, litLignes, montantsLigne, MODES_PAIEMENT, TAUX_TVA, totaux,
 } from '../lib/factures'
 import { IconeBoite, IconeCorbeille, IconeExport, IconePlus, IconeRecherche, IconeScan } from '../components/Icones'
 import Scanner from '../components/Scanner'
@@ -200,7 +200,7 @@ export default function FactureDetail() {
         {lignes.map((l, i) => {
           const taux = franchise ? 0 : l.tva
           const ttc = versTTC(l.prixHT, taux)
-          const totalHT = arrondi(l.quantite * l.prixHT)
+          const m = montantsLigne(l, franchise)
           return (
             <div key={`${i}:${lignes.length}:${l.quantite}:${l.prixHT}:${l.tva}`} className="pile f-ligne">
               <div className="ligne">
@@ -246,8 +246,8 @@ export default function FactureDetail() {
                   </select>
                 )}
                 <span className="mono f-total">
-                  <strong>{euro(versTTC(totalHT, taux))}</strong>
-                  {!franchise && <span className="petit doux" style={{ display: 'block' }}>{euro(totalHT)} HT</span>}
+                  <strong>{euro(m.ttc)}</strong>
+                  {!franchise && <span className="petit doux" style={{ display: 'block' }}>{euro(m.ht)} HT</span>}
                 </span>
               </div>
             </div>

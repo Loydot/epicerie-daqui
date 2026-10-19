@@ -79,21 +79,34 @@ export interface Totaux {
   parTaux: Array<{ taux: number; base: number; montant: number }>
 }
 
+/**
+ * Montants d'une ligne. Les prix de l'épicerie sont TTC : on part donc du TTC
+ * (prix unitaire TTC arrondi au centime × quantité) et le HT s'en déduit.
+ * Partir du HT arrondi puis rajouter la TVA ferait perdre ou gagner un centime.
+ */
+export function montantsLigne(l: LigneFacture, franchise: boolean): { ht: number; ttc: number } {
+  const taux = franchise ? 0 : (l.tva || 0)
+  const unitaireTTC = arrondi((l.prixHT || 0) * (1 + taux / 100))
+  const ttc = arrondi((l.quantite || 0) * unitaireTTC)
+  return { ttc, ht: arrondi(ttc / (1 + taux / 100)) }
+}
+
 export function totaux(lignes: LigneFacture[], franchise: boolean): Totaux {
-  const parTaux = new Map<number, number>()
-  let ht = 0
+  // Par taux : base HT = somme des HT des lignes (le document s'additionne),
+  // TVA = TTC encaissé moins cette base.
+  const parTaux = new Map<number, { ht: number; ttc: number }>()
   for (const l of lignes) {
-    const montant = arrondi((l.quantite || 0) * (l.prixHT || 0))
-    ht += montant
     const taux = franchise ? 0 : (l.tva || 0)
-    parTaux.set(taux, (parTaux.get(taux) ?? 0) + montant)
+    const m = montantsLigne(l, franchise)
+    const cumul = parTaux.get(taux) ?? { ht: 0, ttc: 0 }
+    parTaux.set(taux, { ht: cumul.ht + m.ht, ttc: cumul.ttc + m.ttc })
   }
   const detail = [...parTaux.entries()]
     .sort((a, b) => a[0] - b[0])
-    .map(([taux, base]) => ({ taux, base: arrondi(base), montant: arrondi(base * taux / 100) }))
-  const tva = arrondi(detail.reduce((s, d) => s + d.montant, 0))
-  ht = arrondi(ht)
-  return { ht, tva, ttc: arrondi(ht + tva), parTaux: detail }
+    .map(([taux, c]) => ({ taux, base: arrondi(c.ht), montant: arrondi(c.ttc - c.ht) }))
+  const ttc = arrondi([...parTaux.values()].reduce((s, c) => s + c.ttc, 0))
+  const ht = arrondi(detail.reduce((s, d) => s + d.base, 0))
+  return { ht, tva: arrondi(ttc - ht), ttc, parTaux: detail }
 }
 
 /**
