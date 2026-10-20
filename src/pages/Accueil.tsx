@@ -3,12 +3,14 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/db'
 import { aujourdhui, euro, joursRestants, nombre } from '../lib/format'
 import { estEteint } from '../lib/ouverture'
+import { derniereSauvegarde, joursDepuis, RYTHME_JOURS } from '../lib/sauvegardes'
 import {
   IconeAlerte, IconeBalai, IconeBoite, IconeCalendrier, IconeCamion,
   IconeScan, IconeTemperature, IconeValide,
 } from '../components/Icones'
 
 export default function Accueil() {
+  const derniere = useLiveQuery(derniereSauvegarde, [], undefined)
   const resume = useLiveQuery(async () => {
     const jour = aujourdhui()
     const [produits, equipements, relevesJour, lots, receptionsJour] = await Promise.all([
@@ -54,6 +56,15 @@ export default function Accueil() {
         <IconeScan /> Scanner un produit
       </Link>
 
+      {derniere !== undefined && (joursDepuis(derniere) ?? RYTHME_JOURS) >= RYTHME_JOURS && (
+        <Link to="/reglages" className="bandeau alerte" style={{ textDecoration: 'none' }}>
+          <IconeAlerte />
+          <span>
+            <strong>Sauvegarde de la semaine à faire</strong>
+            {derniere ? ` — la dernière date du ${new Date(derniere).toLocaleDateString('fr-FR')}.` : ' — aucune sauvegarde pour l’instant.'}
+          </span>
+        </Link>
+      )}
       {resume.perimes.length > 0 && (
         <Link to="/dlc" className="bandeau danger" style={{ textDecoration: 'none' }}>
           <IconeAlerte />

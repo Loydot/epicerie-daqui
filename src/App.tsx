@@ -16,6 +16,7 @@ import CommandeDetail from './pages/CommandeDetail'
 import Factures from './pages/Factures'
 import FactureDetail from './pages/FactureDetail'
 import Reglages from './pages/Reglages'
+import Sauvegardes from './pages/Sauvegardes'
 import Connexion from './components/Connexion'
 import { amorceSiVide } from './db/seed'
 import { supabase } from './lib/supabase'
@@ -68,6 +69,7 @@ export default function App() {
           <Route path="factures" element={<Factures />} />
           <Route path="facture/:id" element={<FactureDetail />} />
           <Route path="reglages" element={<Reglages />} />
+          <Route path="sauvegardes" element={<Sauvegardes />} />
           <Route path="*" element={<Accueil />} />
         </Route>
       </Routes>

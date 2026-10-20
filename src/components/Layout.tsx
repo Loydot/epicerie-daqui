@@ -50,6 +50,7 @@ const TITRES: Array<[RegExp, string]> = [
   [/^\/factures/, 'Factures'],
   [/^\/facture\//, 'Facture'],
   [/^\/reglages/, 'Réglages'],
+  [/^\/sauvegardes/, 'Sauvegardes'],
 ]
 
 export default function Layout() {

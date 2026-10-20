@@ -1,43 +1,27 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, setReglage, uid } from '../db/db'
-import { exporteSauvegarde } from '../lib/export'
+import { derniereSauvegarde, exporteTout, joursDepuis, RYTHME_JOURS } from '../lib/sauvegardes'
+import { dateHeureFr } from '../lib/format'
 import EtatSynchro from '../components/EtatSynchro'
 import { IconeCorbeille, IconeExport, IconePlus, IconeValide } from '../components/Icones'
 
 const TABLES = ['produits', 'equipements', 'releves', 'receptions', 'lots', 'taches', 'nettoyages', 'operateurs', 'reglages'] as const
 
 export default function Reglages() {
-  const fichierRef = useRef<HTMLInputElement>(null)
   const [nouvelOperateur, setNouvelOperateur] = useState('')
   const [message, setMessage] = useState('')
 
   const magasin = useLiveQuery(async () => (await db.reglages.get('magasin'))?.valeur ?? '', [], '') ?? ''
   const operateurs = useLiveQuery(() => db.operateurs.toArray(), [], []) ?? []
 
-  const sauvegarde = async () => {
-    const donnees: Record<string, unknown[]> = {}
-    for (const t of TABLES) donnees[t] = await db.table(t).toArray()
-    exporteSauvegarde(donnees)
-  }
+  const derniere = useLiveQuery(derniereSauvegarde, [], '') ?? ''
+  const jours = joursDepuis(derniere)
 
-  const restaure = async (fichier: File) => {
-    try {
-      const contenu = JSON.parse(await fichier.text())
-      const donnees = contenu?.donnees
-      if (!donnees || typeof donnees !== 'object') throw new Error('format')
-      if (!confirm('La restauration remplace toutes les données actuelles. Continuer ?')) return
-      await db.transaction('rw', TABLES.map((t) => db.table(t)), async () => {
-        for (const t of TABLES) {
-          if (!Array.isArray(donnees[t])) continue
-          await db.table(t).clear()
-          await db.table(t).bulkAdd(donnees[t])
-        }
-      })
-      setMessage('Sauvegarde restaurée.')
-    } catch {
-      setMessage("Fichier illisible : ce n'est pas une sauvegarde de l'application.")
-    }
+  const sauvegarde = async () => {
+    const n = await exporteTout()
+    setMessage(`Sauvegarde téléchargée : ${n} fiches. Rangez le fichier en lieu sûr (clé USB, Drive…).`)
   }
 
   const videTout = async () => {
@@ -100,17 +84,18 @@ export default function Reglages() {
       <div className="carte pile">
         <h2>Sauvegarde</h2>
         <p className="petit doux">
-          Tant que la synchro en ligne n'est pas branchée, les données vivent uniquement dans ce navigateur.
-          Exporte une sauvegarde de temps en temps.
+          Exporte tout ce qui concerne l'entreprise : registres HACCP, catalogue, clients,
+          commandes, factures et réglages. Une fois par semaine.
         </p>
-        <button type="button" className="large" onClick={sauvegarde}>
-          <IconeExport /> Exporter une sauvegarde
+        <p className="petit" style={{ color: jours == null || jours >= RYTHME_JOURS ? 'var(--alerte)' : undefined }}>
+          {derniere ? `Dernière sauvegarde : ${dateHeureFr(derniere)}` : 'Aucune sauvegarde faite pour l’instant.'}
+        </p>
+        <button type="button" className="principal large" onClick={sauvegarde}>
+          <IconeExport /> Exporter une sauvegarde complète
         </button>
-        <button type="button" className="large" onClick={() => fichierRef.current?.click()}>
-          Restaurer depuis un fichier
-        </button>
-        <input ref={fichierRef} type="file" accept="application/json" hidden
-          onChange={(e) => { const f = e.target.files?.[0]; if (f) void restaure(f); e.target.value = '' }} />
+        <Link to="/sauvegardes" className="bouton large">
+          Consulter une sauvegarde et récupérer des fiches
+        </Link>
       </div>
 
       <EtatSynchro />
