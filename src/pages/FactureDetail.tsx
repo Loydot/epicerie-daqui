@@ -5,7 +5,7 @@ import { db } from '../db/db'
 import type { Facture, LigneFacture } from '../db/types'
 import { aujourdhui, euro, normalise } from '../lib/format'
 import {
-  ENTREPRISE_DEFAUT, estBon, factureDepuisBon, litEntreprise, litLignes, montantsLigne, MODES_PAIEMENT, TAUX_TVA, totaux,
+  ENTREPRISE_DEFAUT, estDevis, factureDepuisDevis, litEntreprise, litLignes, montantsLigne, MODES_PAIEMENT, TAUX_TVA, totaux,
 } from '../lib/factures'
 import { IconeBoite, IconeCorbeille, IconeExport, IconePlus, IconeRecherche, IconeScan } from '../components/Icones'
 import Scanner from '../components/Scanner'
@@ -101,18 +101,18 @@ export default function FactureDetail() {
     else setMessage(`Code ${code} absent du catalogue.`)
   }
 
-  const bon = estBon(facture)
-  const nomDoc = bon ? 'le bon de commande' : 'la facture'
+  const devis = estDevis(facture)
+  const nomDoc = devis ? 'le devis' : 'la facture'
 
   const supprime = async () => {
     if (!confirm(`Supprimer ${nomDoc} n° ${facture.numero} ?`)) return
     await db.factures.delete(facture.id)
-    navigate(bon ? '/factures?vue=bons' : '/factures', { replace: true })
+    navigate(devis ? '/factures?vue=devis' : '/factures', { replace: true })
   }
 
   const facturer = async () => {
-    if (!confirm('Créer la facture de ce bon de commande ? Elle reprend le client et les articles, datée d’aujourd’hui.')) return
-    const f = await factureDepuisBon(facture, aujourdhui())
+    if (!confirm('Le client a accepté ? Créer la facture de ce devis : elle reprend le client et les articles, datée d’aujourd’hui.')) return
+    const f = await factureDepuisDevis(facture, aujourdhui())
     navigate(`/facture/${f.id}`)
   }
 
@@ -132,7 +132,7 @@ export default function FactureDetail() {
   return (
     <div className="pile">
       <div className="carte pile">
-        <h2>{bon ? 'Bon de commande' : 'Facture'}</h2>
+        <h2>{devis ? 'Devis' : 'Facture'}</h2>
         <div className="f-grille">
           {champ('numero', 'Numéro', { className: 'mono' })}
           {champ('date', "Date d'émission", { type: 'date' })}
@@ -143,14 +143,16 @@ export default function FactureDetail() {
           </p>
         )}
         <div className="f-grille">
-          {bon
-            ? champ('dateVente', 'Retrait / livraison prévu le', { type: 'date' })
+          {devis
+            ? champ('echeance', 'Valable jusqu’au', { type: 'date' })
             : champ('dateVente', 'Date de la vente (si différente)', { type: 'date' })}
-          {!bon && champ('echeance', 'Échéance de paiement', { type: 'date' })}
+          {devis
+            ? champ('dateVente', 'Retrait / livraison prévu le', { type: 'date' })
+            : champ('echeance', 'Échéance de paiement', { type: 'date' })}
         </div>
         {lie && (
           <p className="petit">
-            {bon ? 'Facturé : ' : 'Issue du bon de commande '}
+            {devis ? 'Accepté et facturé : ' : 'Issue du devis '}
             <Link to={`/facture/${lie.id}`} className="mono">n° {lie.numero}</Link>
           </p>
         )}
@@ -295,10 +297,10 @@ export default function FactureDetail() {
         {franchise && <p className="petit doux">TVA non applicable, art. 293 B du CGI</p>}
       </div>
 
-      {bon ? (
+      {devis ? (
       <div className="carte pile">
         <div>
-          <label htmlFor="f-note">Note sur le bon</label>
+          <label htmlFor="f-note">Note sur le devis</label>
           <textarea id="f-note" value={facture.note} placeholder="Ex. plateau pour 10 personnes, sans porc…"
             onChange={(e) => maj({ note: e.target.value })} />
         </div>
@@ -326,14 +328,14 @@ export default function FactureDetail() {
       </div>
       )}
 
-      {bon && !facture.lien && (
+      {devis && !facture.lien && (
         <button type="button" className="principal haut large" onClick={facturer}>
-          Transformer en facture
+          Devis accepté : créer la facture
         </button>
       )}
 
       <button type="button" className="principal large" onClick={imprime}>
-        <IconeExport /> Télécharger {bon ? 'le bon' : 'la facture'} (PDF)
+        <IconeExport /> Télécharger {devis ? 'le devis' : 'la facture'} (PDF)
       </button>
       <button type="button" className="destructif large" onClick={supprime}>
         <IconeCorbeille /> Supprimer {nomDoc}

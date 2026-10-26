@@ -12,7 +12,7 @@ export function versServeur(nom: string, ligne: Record<string, unknown>): Record
     sortie.exceptions ??= ''
   }
   if (nom === 'factures') {
-    // Factures créées avant les bons de commande : mêmes raisons qu'au-dessus.
+    // Factures créées avant les devis : mêmes raisons qu'au-dessus.
     sortie.type ??= 'facture'
     sortie.lien ??= ''
   }

@@ -406,11 +406,11 @@ export async function facturePdf(f: Facture, lignes: LigneFacture[], e: Entrepri
   const largeur = doc.internal.pageSize.getWidth()
   const droite = largeur - MARGE
 
-  const bon = f.type === 'bon'
-  const sousTitre = bon
-    ? `Date : ${dateFr(f.date)}${f.dateVente ? ` · Retrait / livraison : ${dateFr(f.dateVente)}` : ''}`
+  const devis = f.type === 'devis'
+  const sousTitre = devis
+    ? `Date : ${dateFr(f.date)}${f.echeance ? ` · Valable jusqu’au ${dateFr(f.echeance)}` : ''}`
     : `Date : ${dateFr(f.date)}${f.dateVente && f.dateVente !== f.date ? ` · Vente du ${dateFr(f.dateVente)}` : ''}`
-  const y = entete(doc, `${bon ? 'Bon de commande' : 'Facture'} n° ${f.numero}`, e.raisonSociale, sousTitre, logo)
+  const y = entete(doc, `${devis ? 'Devis' : 'Facture'} n° ${f.numero}`, e.raisonSociale, sousTitre, logo)
 
   // Vendeur à gauche, client à droite.
   const vendeur = [
@@ -487,14 +487,19 @@ export async function facturePdf(f: Facture, lignes: LigneFacture[], e: Entrepri
     fin += 6
   }
 
-  if (!bon && f.acquittee) {
+  if (!devis && f.acquittee) {
     doc.setFont('helvetica', 'bold').setFontSize(12).setTextColor(30, 130, 70)
     doc.text(`ACQUITTÉE${f.modePaiement ? ` — ${f.modePaiement}` : ''}`, MARGE, fin)
     fin += 8
   }
 
-  if (bon) {
+  if (devis) {
     // Pas une facture : ni conditions de paiement, ni pénalités. On fait signer le client.
+    if (f.dateVente) {
+      doc.setFont('helvetica', 'normal').setFontSize(9).setTextColor(30)
+      doc.text(`Retrait / livraison prévu le ${dateFr(f.dateVente)}.`, MARGE, fin + 2)
+      fin += 7
+    }
     if (f.note) {
       doc.setFont('helvetica', 'normal').setFontSize(9).setTextColor(30)
       const l = doc.splitTextToSize(f.note, largeur - 2 * MARGE)
@@ -504,12 +509,13 @@ export async function facturePdf(f: Facture, lignes: LigneFacture[], e: Entrepri
     if (fin + 40 > doc.internal.pageSize.getHeight() - 15) { doc.addPage(); fin = 20 }
     doc.setDrawColor(...GRIS).rect(droite - 80, fin, 80, 32)
     doc.setFont('helvetica', 'bold').setFontSize(9).setTextColor(30)
-    doc.text('Bon pour accord — date et signature du client', droite - 77, fin + 6)
+    doc.text('« Bon pour accord » — date et signature', droite - 77, fin + 6)
     doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(...GRIS)
-    doc.text('Ce document n’est pas une facture.', MARGE, fin + 6)
+    doc.text(f.echeance ? `Devis valable jusqu’au ${dateFr(f.echeance)}.` : 'Devis.', MARGE, fin + 6)
+    doc.text('Ce document n’est pas une facture.', MARGE, fin + 11)
     piedDePage(doc)
-    const nomBon = (f.clientNom || 'client').normalize('NFD').replace(/[^a-zA-Z0-9]+/g, '-').toLowerCase()
-    doc.save(`bon-de-commande-${f.numero}-${nomBon}.pdf`)
+    const nomDevis = (f.clientNom || 'client').normalize('NFD').replace(/[^a-zA-Z0-9]+/g, '-').toLowerCase()
+    doc.save(`devis-${f.numero}-${nomDevis}.pdf`)
     return
   }
 

@@ -13,27 +13,27 @@ import { IconePlus, IconeRecherche, IconeRegistre } from '../components/Icones'
 export default function Factures() {
   const [params, setParams] = useSearchParams()
   const v = params.get('vue')
-  const vue = v === 'entreprise' || v === 'bons' ? v : 'factures'
+  const vue = v === 'entreprise' || v === 'devis' ? v : 'factures'
 
   return (
     <div className="pile">
       <div className="onglets">
         <button type="button" className={vue === 'factures' ? 'actif' : ''}
           onClick={() => setParams({}, { replace: true })}>Factures</button>
-        <button type="button" className={vue === 'bons' ? 'actif' : ''}
-          onClick={() => setParams({ vue: 'bons' }, { replace: true })}>Bons de commande</button>
+        <button type="button" className={vue === 'devis' ? 'actif' : ''}
+          onClick={() => setParams({ vue: 'devis' }, { replace: true })}>Devis</button>
         <button type="button" className={vue === 'entreprise' ? 'actif' : ''}
           onClick={() => setParams({ vue: 'entreprise' }, { replace: true })}>Entreprise</button>
       </div>
       {vue === 'entreprise'
         ? <ConfigEntreprise />
-        : <ListeFactures key={vue} type={vue === 'bons' ? 'bon' : 'facture'} />}
+        : <ListeFactures key={vue} type={vue === 'devis' ? 'devis' : 'facture'} />}
     </div>
   )
 }
 
 function ListeFactures({ type }: { type: TypeDocument }) {
-  const bon = type === 'bon'
+  const devis = type === 'devis'
   const navigate = useNavigate()
   const [q, setQ] = useState('')
   const factures = useLiveQuery(
@@ -59,10 +59,10 @@ function ListeFactures({ type }: { type: TypeDocument }) {
   return (
     <>
       <button type="button" className="principal haut large" onClick={cree}>
-        <IconePlus /> {bon ? 'Nouveau bon de commande' : 'Nouvelle facture'}
+        <IconePlus /> {devis ? 'Nouveau devis' : 'Nouvelle facture'}
       </button>
 
-      {!bon && !entreprise.siret && (
+      {!devis && !entreprise.siret && (
         <p className="petit doux">
           Le SIRET de l'entreprise n'est pas encore renseigné : il est obligatoire sur une facture.
           Complétez l'onglet Entreprise.
@@ -81,7 +81,7 @@ function ListeFactures({ type }: { type: TypeDocument }) {
         {affichees.length === 0 ? (
           <div className="vide">
             <IconeRegistre />
-            <p>{bon ? 'Aucun bon de commande pour l’instant.' : 'Aucune facture pour l’instant.'}</p>
+            <p>{devis ? 'Aucun devis pour l’instant.' : 'Aucune facture pour l’instant.'}</p>
           </div>
         ) : (
           <div className="liste">
@@ -95,9 +95,9 @@ function ListeFactures({ type }: { type: TypeDocument }) {
                   <div className="mono" style={{ fontWeight: 600 }}>
                     {euro(totaux(litLignes(f), franchise).ttc)}
                   </div>
-                  {bon ? (
-                    <span className={`etiquette ${f.lien ? 'ok' : 'accent'}`}>
-                      {f.lien ? 'Facturé' : 'En cours'}
+                  {devis ? (
+                    <span className={`etiquette ${f.lien ? 'ok' : f.echeance && f.echeance < aujourdhui() ? '' : 'accent'}`}>
+                      {f.lien ? 'Accepté · facturé' : f.echeance && f.echeance < aujourdhui() ? 'Expiré' : 'En attente'}
                     </span>
                   ) : (
                     <span className={`etiquette ${f.acquittee ? 'ok' : 'alerte'}`}>

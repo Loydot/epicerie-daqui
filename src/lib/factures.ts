@@ -115,8 +115,8 @@ export function totaux(lignes: LigneFacture[], franchise: boolean): Totaux {
  */
 export async function prochainNumero(annee: string, type: TypeDocument = 'facture'): Promise<string> {
   const factures = await db.factures.toArray()
-  // Les bons ont leur propre suite (BC-2026-0001) : ils ne trouent pas celle des factures.
-  const prefixe = type === 'bon' ? `BC-${annee}-` : `${annee}-`
+  // Les devis ont leur propre suite (D-2026-0001) : ils ne trouent pas celle des factures.
+  const prefixe = type === 'devis' ? `D-${annee}-` : `${annee}-`
   const max = factures
     .map((f) => f.numero)
     .filter((n) => n.startsWith(prefixe))
@@ -130,13 +130,25 @@ export const MODES_PAIEMENT = ['Espèces', 'Carte bancaire', 'Chèque', 'Viremen
 
 export const TAUX_TVA = [5.5, 10, 20, 2.1, 0]
 
-export const estBon = (f: Pick<Facture, 'type'>) => f.type === 'bon'
+export const estDevis = (f: Pick<Facture, 'type'>) => f.type === 'devis'
+
+/** Durée de validité proposée pour un devis, modifiable sur chacun. */
+export const VALIDITE_DEVIS_JOURS = 30
+
+function ajouteJours(jour: string, n: number): string {
+  const d = new Date(`${jour}T12:00:00`)
+  d.setDate(d.getDate() + n)
+  const p = (x: number) => String(x).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
+}
 
 /** Document vierge, prêt à remplir. */
 export async function nouveauDocument(type: TypeDocument, date: string): Promise<Facture> {
   return {
     id: crypto.randomUUID(), type, lien: '',
-    numero: await prochainNumero(date.slice(0, 4), type), date, dateVente: '', echeance: '',
+    numero: await prochainNumero(date.slice(0, 4), type), date, dateVente: '',
+    // Sur un devis, l'échéance est la date de fin de validité.
+    echeance: type === 'devis' ? ajouteJours(date, VALIDITE_DEVIS_JOURS) : '',
     clientNom: '', clientAdresse: '', clientCodePostal: '', clientVille: '',
     clientTelephone: '', clientEmail: '', clientSiret: '', clientTva: '',
     lignes: '[]', modePaiement: '', acquittee: 0, note: '', creeLe: new Date().toISOString(),
@@ -144,22 +156,22 @@ export async function nouveauDocument(type: TypeDocument, date: string): Promise
 }
 
 /**
- * Transforme un bon de commande en facture : même client, mêmes articles, datée
- * du jour avec le numéro de facture suivant. Le bon reste tel quel, relié à elle.
+ * Transforme un devis accepté en facture : même client, mêmes articles, datée
+ * du jour avec le numéro de facture suivant. Le devis reste tel quel, relié à elle.
  */
-export async function factureDepuisBon(bon: Facture, date: string): Promise<Facture> {
+export async function factureDepuisDevis(devis: Facture, date: string): Promise<Facture> {
   const f = await nouveauDocument('facture', date)
   Object.assign(f, {
-    lien: bon.id, dateVente: bon.dateVente,
-    clientNom: bon.clientNom, clientAdresse: bon.clientAdresse,
-    clientCodePostal: bon.clientCodePostal, clientVille: bon.clientVille,
-    clientTelephone: bon.clientTelephone, clientEmail: bon.clientEmail,
-    clientSiret: bon.clientSiret, clientTva: bon.clientTva,
-    lignes: bon.lignes, note: bon.note,
+    lien: devis.id, dateVente: devis.dateVente,
+    clientNom: devis.clientNom, clientAdresse: devis.clientAdresse,
+    clientCodePostal: devis.clientCodePostal, clientVille: devis.clientVille,
+    clientTelephone: devis.clientTelephone, clientEmail: devis.clientEmail,
+    clientSiret: devis.clientSiret, clientTva: devis.clientTva,
+    lignes: devis.lignes, note: devis.note,
   })
   await db.transaction('rw', db.factures, async () => {
     await db.factures.add(f)
-    await db.factures.update(bon.id, { lien: f.id })
+    await db.factures.update(devis.id, { lien: f.id })
   })
   return f
 }

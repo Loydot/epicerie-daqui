@@ -242,7 +242,7 @@ export interface Ouverture extends Synchronisable {
   creeLe: string
 }
 
-export type TypeDocument = 'facture' | 'bon'
+export type TypeDocument = 'facture' | 'devis'
 
 export interface Facture extends Synchronisable {
   id: Id
@@ -263,9 +263,9 @@ export interface Facture extends Synchronisable {
   /** Pour un client professionnel. */
   clientSiret: string
   clientTva: string
-  /** « bon » pour un bon de commande client ; absent ou « facture » sinon. */
+  /** « devis » pour un devis client ; absent ou « facture » sinon. */
   type?: TypeDocument
-  /** Le document lié : la facture issue d'un bon, ou le bon d'origine d'une facture (son id). */
+  /** Le document lié : la facture issue d'un devis, ou le devis d'origine d'une facture (son id). */
   lien?: string
   /** Lignes en JSON (LigneFacture[]) : la facture forme un tout, synchronisé d'un bloc. */
   lignes: string
