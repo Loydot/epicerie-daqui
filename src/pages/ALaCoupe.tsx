@@ -1,19 +1,49 @@
 import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db, uid } from '../db/db'
+import { db, getReglage, setReglage, uid } from '../db/db'
 import type { CategorieCoupe, Ouverture } from '../db/types'
 import { normalise } from '../lib/format'
 import { useOperateur } from '../lib/operateur'
 import { IconeCorbeille, IconePlus, IconeRecherche, IconeValide } from '../components/Icones'
 
 /** L'ordre des rayons de la coupe, tel qu'on les range au magasin. */
-export const CATEGORIES: Array<{ cle: CategorieCoupe; nom: string }> = [
+const DE_BASE: Array<{ cle: CategorieCoupe; nom: string }> = [
   { cle: 'charcuterie', nom: 'Charcuterie' },
   { cle: 'boucherie', nom: 'Boucherie' },
   { cle: 'fromage', nom: 'Fromage' },
   { cle: 'traiteur', nom: 'Traiteur' },
-  { cle: 'autre', nom: 'Autre' },
 ]
+
+/** Rayons ajoutés à la main, partagés entre appareils (réglage synchronisé). */
+const CLE_RAYONS = 'rayonsCoupe'
+
+function litRayons(valeur: string): string[] {
+  try {
+    const l = JSON.parse(valeur)
+    return Array.isArray(l) ? l.filter((x) => typeof x === 'string' && x.trim()) : []
+  } catch {
+    return []
+  }
+}
+
+/** Les rayons de base puis ceux ajoutés, et « + » pour en créer un. */
+function useCategories() {
+  const ajoutes = useLiveQuery(async () => litRayons(await getReglage(CLE_RAYONS)), [], []) ?? []
+  const categories = [...DE_BASE, ...ajoutes.map((n) => ({ cle: n, nom: n }))]
+  const ajoute = async (): Promise<string> => {
+    const nom = prompt('Nom du nouveau rayon :')?.trim()
+    if (!nom) return ''
+    const existant = categories.find((c) => normalise(c.nom) === normalise(nom))
+    if (existant) return existant.cle
+    await setReglage(CLE_RAYONS, JSON.stringify([...ajoutes, nom]))
+    return nom
+  }
+  return { categories, ajoute }
+}
+
+/** Nom affiché, y compris pour une catégorie qui n'est plus dans la liste (ancien « Autre »). */
+const nomDe = (cle: string, categories: Array<{ cle: string; nom: string }>) =>
+  categories.find((c) => c.cle === cle)?.nom ?? (cle === 'autre' || !cle ? 'Autre' : cle)
 
 /** « 2026-10-26T09:12 » à l'heure locale : c'est ce qu'attend un champ datetime-local. */
 function maintenant(): string {
@@ -48,6 +78,7 @@ function depuis(iso: string): string {
  */
 export default function ALaCoupe({ recherche }: { recherche?: string } = {}) {
   const [operateur] = useOperateur()
+  const { categories, ajoute } = useCategories()
   const [qLocal, setQ] = useState('')
   const integre = recherche !== undefined
   const q = integre ? recherche : qLocal
@@ -72,10 +103,13 @@ export default function ALaCoupe({ recherche }: { recherche?: string } = {}) {
       })
       // La plus récemment ouverte en premier.
       .sort((a, b) => b.ouvertLe.localeCompare(a.ouvertLe))
-    return CATEGORIES
-      .map((c) => ({ ...c, pieces: gardees.filter((o) => (o.categorie || 'autre') === c.cle) }))
+    // Les rayons de la liste dans l'ordre, puis ceux de pièces plus anciennes.
+    const cles = [...categories.map((c) => c.cle)]
+    for (const o of gardees) if (!cles.includes(o.categorie || 'autre')) cles.push(o.categorie || 'autre')
+    return cles
+      .map((cle) => ({ cle, nom: nomDe(cle, categories), pieces: gardees.filter((o) => (o.categorie || 'autre') === cle) }))
       .filter((g) => g.pieces.length > 0)
-  }, [toutes, q, filtre, voirFinies])
+  }, [toutes, q, filtre, voirFinies, categories])
 
   /** Les noms déjà saisis, pour ne pas les retaper à chaque nouvelle pièce. */
   const suggestions = useMemo(() => {
@@ -114,10 +148,12 @@ export default function ALaCoupe({ recherche }: { recherche?: string } = {}) {
         )}
         <div className="puces">
           <button type="button" className={filtre === '' ? 'actif' : ''} onClick={() => setFiltre('')}>Tout</button>
-          {CATEGORIES.map((c) => (
+          {categories.map((c) => (
             <button key={c.cle} type="button" className={filtre === c.cle ? 'actif' : ''}
               onClick={() => setFiltre(filtre === c.cle ? '' : c.cle)}>{c.nom}</button>
           ))}
+          <button type="button" aria-label="Ajouter un rayon"
+            onClick={async () => { const c = await ajoute(); if (c) setFiltre(c) }}>+</button>
         </div>
         <label className="ligne petit" style={{ gap: 8, margin: 0 }}>
           <input type="checkbox" style={{ width: 'auto', minHeight: 0 }} checked={voirFinies}
@@ -144,7 +180,7 @@ export default function ALaCoupe({ recherche }: { recherche?: string } = {}) {
                 <button key={o.id} type="button" className="item"
                   onClick={() => { setNom(o.nom); setCategorie(o.categorie) }}>
                   <div className="item-corps"><div className="item-nom">{o.nom}</div></div>
-                  <span className="petit doux">{CATEGORIES.find((c) => c.cle === o.categorie)?.nom}</span>
+                  <span className="petit doux">{nomDe(o.categorie, categories)}</span>
                 </button>
               ))}
             </div>
@@ -152,10 +188,12 @@ export default function ALaCoupe({ recherche }: { recherche?: string } = {}) {
           <div>
             <label>Rayon</label>
             <div className="puces">
-              {CATEGORIES.map((c) => (
+              {categories.map((c) => (
                 <button key={c.cle} type="button" className={categorie === c.cle ? 'actif' : ''}
                   onClick={() => setCategorie(c.cle)}>{c.nom}</button>
               ))}
+              <button type="button" aria-label="Ajouter un rayon"
+                onClick={async () => { const c = await ajoute(); if (c) setCategorie(c) }}>+</button>
             </div>
           </div>
           <div>
@@ -199,7 +237,7 @@ export default function ALaCoupe({ recherche }: { recherche?: string } = {}) {
                     ? <span className="etiquette">Terminé</span>
                     : <span className="etiquette ok">En vente</span>}
                 </button>
-                {detail === o.id && <EditionPiece piece={o} surFermer={() => setDetail('')} />}
+                {detail === o.id && <EditionPiece piece={o} categories={categories} ajoute={ajoute} surFermer={() => setDetail('')} />}
               </div>
             ))}
           </div>
@@ -209,7 +247,12 @@ export default function ALaCoupe({ recherche }: { recherche?: string } = {}) {
   )
 }
 
-function EditionPiece({ piece, surFermer }: { piece: Ouverture; surFermer: () => void }) {
+function EditionPiece({ piece, categories, ajoute, surFermer }: {
+  piece: Ouverture
+  categories: Array<{ cle: string; nom: string }>
+  ajoute: () => Promise<string>
+  surFermer: () => void
+}) {
   const maj = (m: Partial<Ouverture>) => void db.ouvertures.update(piece.id, m)
   return (
     <div className="pile" style={{ padding: '4px 0 14px' }}>
@@ -218,10 +261,12 @@ function EditionPiece({ piece, surFermer }: { piece: Ouverture; surFermer: () =>
         <input value={piece.nom} onChange={(e) => maj({ nom: e.target.value })} />
       </div>
       <div className="puces">
-        {CATEGORIES.map((c) => (
+        {categories.map((c) => (
           <button key={c.cle} type="button" className={piece.categorie === c.cle ? 'actif' : ''}
             onClick={() => maj({ categorie: c.cle })}>{c.nom}</button>
         ))}
+        <button type="button" aria-label="Ajouter un rayon"
+          onClick={async () => { const c = await ajoute(); if (c) maj({ categorie: c }) }}>+</button>
       </div>
       <div>
         <label>Ouvert le</label>

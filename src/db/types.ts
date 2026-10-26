@@ -225,7 +225,8 @@ export interface LigneFacture {
   tva: number
 }
 
-export type CategorieCoupe = 'charcuterie' | 'boucherie' | 'fromage' | 'traiteur' | 'autre'
+/** Un des rayons de base, ou un rayon ajouté à la main (son nom). */
+export type CategorieCoupe = string
 
 /** Une pièce entamée à la coupe : on sait quand elle a été ouverte. */
 export interface Ouverture extends Synchronisable {
