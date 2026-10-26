@@ -42,9 +42,15 @@ function depuis(iso: string): string {
   return `il y a ${n} jours`
 }
 
-export default function ALaCoupe() {
+/**
+ * Dans le catalogue, la recherche est celle du catalogue : on la reçoit en
+ * « recherche » et l'on n'affiche pas la sienne.
+ */
+export default function ALaCoupe({ recherche }: { recherche?: string } = {}) {
   const [operateur] = useOperateur()
-  const [q, setQ] = useState('')
+  const [qLocal, setQ] = useState('')
+  const integre = recherche !== undefined
+  const q = integre ? recherche : qLocal
   const [filtre, setFiltre] = useState<CategorieCoupe | ''>('')
   const [voirFinies, setVoirFinies] = useState(true)
   const [ouvert, setOuvert] = useState(false)
@@ -99,11 +105,13 @@ export default function ALaCoupe() {
   return (
     <div className="pile">
       <div className="carte pile">
-        <div className="ligne">
-          <IconeRecherche className="doux" />
-          <input className="champ" placeholder="Chercher : brebis, jambon, terrine…" value={q}
-            onChange={(e) => setQ(e.target.value)} autoComplete="off" />
-        </div>
+        {integre ? <h2>À la coupe</h2> : (
+          <div className="ligne">
+            <IconeRecherche className="doux" />
+            <input className="champ" placeholder="Chercher : brebis, jambon, terrine…" value={q}
+              onChange={(e) => setQ(e.target.value)} autoComplete="off" />
+          </div>
+        )}
         <div className="puces">
           <button type="button" className={filtre === '' ? 'actif' : ''} onClick={() => setFiltre('')}>Tout</button>
           {CATEGORIES.map((c) => (
@@ -163,7 +171,7 @@ export default function ALaCoupe() {
         </div>
       )}
 
-      {total === 0 && (
+      {total === 0 && !(integre && q) && (
         <div className="carte vide">
           <p>{toutes.length === 0 ? 'Aucune pièce enregistrée pour l’instant.' : 'Rien ne correspond.'}</p>
         </div>
