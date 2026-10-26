@@ -1,35 +1,45 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db, setReglage, uid } from '../db/db'
+import { db, setReglage } from '../db/db'
+import type { TypeDocument } from '../db/types'
 import { aujourdhui, dateFr, euro, normalise } from '../lib/format'
 import {
-  CHAMPS_ENTREPRISE, cleEntreprise, ENTREPRISE_DEFAUT, litEntreprise, litLignes, prochainNumero,
+  CHAMPS_ENTREPRISE, cleEntreprise, ENTREPRISE_DEFAUT, litEntreprise, litLignes, nouveauDocument,
   totaux, type Entreprise,
 } from '../lib/factures'
 import { IconePlus, IconeRecherche, IconeRegistre } from '../components/Icones'
 
 export default function Factures() {
   const [params, setParams] = useSearchParams()
-  const vue = params.get('vue') === 'entreprise' ? 'entreprise' : 'factures'
+  const v = params.get('vue')
+  const vue = v === 'entreprise' || v === 'bons' ? v : 'factures'
 
   return (
     <div className="pile">
       <div className="onglets">
         <button type="button" className={vue === 'factures' ? 'actif' : ''}
           onClick={() => setParams({}, { replace: true })}>Factures</button>
+        <button type="button" className={vue === 'bons' ? 'actif' : ''}
+          onClick={() => setParams({ vue: 'bons' }, { replace: true })}>Bons de commande</button>
         <button type="button" className={vue === 'entreprise' ? 'actif' : ''}
           onClick={() => setParams({ vue: 'entreprise' }, { replace: true })}>Entreprise</button>
       </div>
-      {vue === 'factures' ? <ListeFactures /> : <ConfigEntreprise />}
+      {vue === 'entreprise'
+        ? <ConfigEntreprise />
+        : <ListeFactures key={vue} type={vue === 'bons' ? 'bon' : 'facture'} />}
     </div>
   )
 }
 
-function ListeFactures() {
+function ListeFactures({ type }: { type: TypeDocument }) {
+  const bon = type === 'bon'
   const navigate = useNavigate()
   const [q, setQ] = useState('')
-  const factures = useLiveQuery(() => db.factures.toArray(), [], []) ?? []
+  const factures = useLiveQuery(
+    async () => (await db.factures.toArray()).filter((f) => (f.type ?? 'facture') === type),
+    [type], [],
+  ) ?? []
   const entreprise = useLiveQuery(litEntreprise, [], ENTREPRISE_DEFAUT) ?? ENTREPRISE_DEFAUT
   const franchise = entreprise.franchiseTva === '1'
 
@@ -41,24 +51,18 @@ function ListeFactures() {
   }, [factures, q])
 
   const cree = async () => {
-    const date = aujourdhui()
-    const id = uid()
-    await db.factures.add({
-      id, numero: await prochainNumero(date.slice(0, 4)), date, dateVente: '', echeance: '',
-      clientNom: '', clientAdresse: '', clientCodePostal: '', clientVille: '',
-      clientTelephone: '', clientEmail: '', clientSiret: '', clientTva: '',
-      lignes: '[]', modePaiement: '', acquittee: 0, note: '', creeLe: new Date().toISOString(),
-    })
-    navigate(`/facture/${id}`)
+    const doc = await nouveauDocument(type, aujourdhui())
+    await db.factures.add(doc)
+    navigate(`/facture/${doc.id}`)
   }
 
   return (
     <>
       <button type="button" className="principal haut large" onClick={cree}>
-        <IconePlus /> Nouvelle facture
+        <IconePlus /> {bon ? 'Nouveau bon de commande' : 'Nouvelle facture'}
       </button>
 
-      {!entreprise.siret && (
+      {!bon && !entreprise.siret && (
         <p className="petit doux">
           Le SIRET de l'entreprise n'est pas encore renseigné : il est obligatoire sur une facture.
           Complétez l'onglet Entreprise.
@@ -77,7 +81,7 @@ function ListeFactures() {
         {affichees.length === 0 ? (
           <div className="vide">
             <IconeRegistre />
-            <p>Aucune facture pour l'instant.</p>
+            <p>{bon ? 'Aucun bon de commande pour l’instant.' : 'Aucune facture pour l’instant.'}</p>
           </div>
         ) : (
           <div className="liste">
@@ -91,9 +95,15 @@ function ListeFactures() {
                   <div className="mono" style={{ fontWeight: 600 }}>
                     {euro(totaux(litLignes(f), franchise).ttc)}
                   </div>
-                  <span className={`etiquette ${f.acquittee ? 'ok' : 'alerte'}`}>
-                    {f.acquittee ? 'Payée' : 'À payer'}
-                  </span>
+                  {bon ? (
+                    <span className={`etiquette ${f.lien ? 'ok' : 'accent'}`}>
+                      {f.lien ? 'Facturé' : 'En cours'}
+                    </span>
+                  ) : (
+                    <span className={`etiquette ${f.acquittee ? 'ok' : 'alerte'}`}>
+                      {f.acquittee ? 'Payée' : 'À payer'}
+                    </span>
+                  )}
                 </div>
               </Link>
             ))}

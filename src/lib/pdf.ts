@@ -406,11 +406,11 @@ export async function facturePdf(f: Facture, lignes: LigneFacture[], e: Entrepri
   const largeur = doc.internal.pageSize.getWidth()
   const droite = largeur - MARGE
 
-  const y = entete(
-    doc, `Facture n° ${f.numero}`, e.raisonSociale,
-    `Date : ${dateFr(f.date)}${f.dateVente && f.dateVente !== f.date ? ` · Vente du ${dateFr(f.dateVente)}` : ''}`,
-    logo,
-  )
+  const bon = f.type === 'bon'
+  const sousTitre = bon
+    ? `Date : ${dateFr(f.date)}${f.dateVente ? ` · Retrait / livraison : ${dateFr(f.dateVente)}` : ''}`
+    : `Date : ${dateFr(f.date)}${f.dateVente && f.dateVente !== f.date ? ` · Vente du ${dateFr(f.dateVente)}` : ''}`
+  const y = entete(doc, `${bon ? 'Bon de commande' : 'Facture'} n° ${f.numero}`, e.raisonSociale, sousTitre, logo)
 
   // Vendeur à gauche, client à droite.
   const vendeur = [
@@ -487,10 +487,30 @@ export async function facturePdf(f: Facture, lignes: LigneFacture[], e: Entrepri
     fin += 6
   }
 
-  if (f.acquittee) {
+  if (!bon && f.acquittee) {
     doc.setFont('helvetica', 'bold').setFontSize(12).setTextColor(30, 130, 70)
     doc.text(`ACQUITTÉE${f.modePaiement ? ` — ${f.modePaiement}` : ''}`, MARGE, fin)
     fin += 8
+  }
+
+  if (bon) {
+    // Pas une facture : ni conditions de paiement, ni pénalités. On fait signer le client.
+    if (f.note) {
+      doc.setFont('helvetica', 'normal').setFontSize(9).setTextColor(30)
+      const l = doc.splitTextToSize(f.note, largeur - 2 * MARGE)
+      doc.text(l, MARGE, fin + 2)
+      fin += l.length * 4.5 + 6
+    }
+    if (fin + 40 > doc.internal.pageSize.getHeight() - 15) { doc.addPage(); fin = 20 }
+    doc.setDrawColor(...GRIS).rect(droite - 80, fin, 80, 32)
+    doc.setFont('helvetica', 'bold').setFontSize(9).setTextColor(30)
+    doc.text('Bon pour accord — date et signature du client', droite - 77, fin + 6)
+    doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(...GRIS)
+    doc.text('Ce document n’est pas une facture.', MARGE, fin + 6)
+    piedDePage(doc)
+    const nomBon = (f.clientNom || 'client').normalize('NFD').replace(/[^a-zA-Z0-9]+/g, '-').toLowerCase()
+    doc.save(`bon-de-commande-${f.numero}-${nomBon}.pdf`)
+    return
   }
 
   const bas: string[] = []

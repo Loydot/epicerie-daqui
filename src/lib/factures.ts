@@ -1,5 +1,5 @@
 import { db } from '../db/db'
-import type { Facture, LigneFacture } from '../db/types'
+import type { Facture, LigneFacture, TypeDocument } from '../db/types'
 
 /**
  * Les informations de l'entreprise qui figurent sur chaque facture.
@@ -113,9 +113,10 @@ export function totaux(lignes: LigneFacture[], franchise: boolean): Totaux {
  * Numéro suivant pour l'année : 2026-0001, 2026-0002…
  * La loi impose une suite continue, sans trou : on repart du plus grand existant.
  */
-export async function prochainNumero(annee: string): Promise<string> {
+export async function prochainNumero(annee: string, type: TypeDocument = 'facture'): Promise<string> {
   const factures = await db.factures.toArray()
-  const prefixe = `${annee}-`
+  // Les bons ont leur propre suite (BC-2026-0001) : ils ne trouent pas celle des factures.
+  const prefixe = type === 'bon' ? `BC-${annee}-` : `${annee}-`
   const max = factures
     .map((f) => f.numero)
     .filter((n) => n.startsWith(prefixe))
@@ -128,3 +129,37 @@ export async function prochainNumero(annee: string): Promise<string> {
 export const MODES_PAIEMENT = ['Espèces', 'Carte bancaire', 'Chèque', 'Virement']
 
 export const TAUX_TVA = [5.5, 10, 20, 2.1, 0]
+
+export const estBon = (f: Pick<Facture, 'type'>) => f.type === 'bon'
+
+/** Document vierge, prêt à remplir. */
+export async function nouveauDocument(type: TypeDocument, date: string): Promise<Facture> {
+  return {
+    id: crypto.randomUUID(), type, lien: '',
+    numero: await prochainNumero(date.slice(0, 4), type), date, dateVente: '', echeance: '',
+    clientNom: '', clientAdresse: '', clientCodePostal: '', clientVille: '',
+    clientTelephone: '', clientEmail: '', clientSiret: '', clientTva: '',
+    lignes: '[]', modePaiement: '', acquittee: 0, note: '', creeLe: new Date().toISOString(),
+  }
+}
+
+/**
+ * Transforme un bon de commande en facture : même client, mêmes articles, datée
+ * du jour avec le numéro de facture suivant. Le bon reste tel quel, relié à elle.
+ */
+export async function factureDepuisBon(bon: Facture, date: string): Promise<Facture> {
+  const f = await nouveauDocument('facture', date)
+  Object.assign(f, {
+    lien: bon.id, dateVente: bon.dateVente,
+    clientNom: bon.clientNom, clientAdresse: bon.clientAdresse,
+    clientCodePostal: bon.clientCodePostal, clientVille: bon.clientVille,
+    clientTelephone: bon.clientTelephone, clientEmail: bon.clientEmail,
+    clientSiret: bon.clientSiret, clientTva: bon.clientTva,
+    lignes: bon.lignes, note: bon.note,
+  })
+  await db.transaction('rw', db.factures, async () => {
+    await db.factures.add(f)
+    await db.factures.update(bon.id, { lien: f.id })
+  })
+  return f
+}

@@ -225,6 +225,8 @@ export interface LigneFacture {
   tva: number
 }
 
+export type TypeDocument = 'facture' | 'bon'
+
 export interface Facture extends Synchronisable {
   id: Id
   /** Numéro unique et continu, ex. 2026-0001. */
@@ -244,6 +246,10 @@ export interface Facture extends Synchronisable {
   /** Pour un client professionnel. */
   clientSiret: string
   clientTva: string
+  /** « bon » pour un bon de commande client ; absent ou « facture » sinon. */
+  type?: TypeDocument
+  /** Le document lié : la facture issue d'un bon, ou le bon d'origine d'une facture (son id). */
+  lien?: string
   /** Lignes en JSON (LigneFacture[]) : la facture forme un tout, synchronisé d'un bloc. */
   lignes: string
   modePaiement: string

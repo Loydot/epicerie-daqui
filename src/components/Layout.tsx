@@ -48,7 +48,7 @@ const TITRES: Array<[RegExp, string]> = [
   [/^\/commandes$/, 'Commandes'],
   [/^\/commande\//, 'Commande'],
   [/^\/factures/, 'Factures'],
-  [/^\/facture\//, 'Facture'],
+  [/^\/facture\//, 'Document'],
   [/^\/reglages/, 'Réglages'],
   [/^\/sauvegardes/, 'Sauvegardes'],
 ]

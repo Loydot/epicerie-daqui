@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/db'
 import type { Facture, LigneFacture } from '../db/types'
-import { euro, normalise } from '../lib/format'
+import { aujourdhui, euro, normalise } from '../lib/format'
 import {
-  ENTREPRISE_DEFAUT, litEntreprise, litLignes, montantsLigne, MODES_PAIEMENT, TAUX_TVA, totaux,
+  ENTREPRISE_DEFAUT, estBon, factureDepuisBon, litEntreprise, litLignes, montantsLigne, MODES_PAIEMENT, TAUX_TVA, totaux,
 } from '../lib/factures'
 import { IconeBoite, IconeCorbeille, IconeExport, IconePlus, IconeRecherche, IconeScan } from '../components/Icones'
 import Scanner from '../components/Scanner'
@@ -37,6 +37,10 @@ export default function FactureDetail() {
   const facture = useLiveQuery(() => db.factures.get(id), [id], undefined)
   const produits = useLiveQuery(() => db.produits.toArray(), [], []) ?? []
   const entreprise = useLiveQuery(litEntreprise, [], ENTREPRISE_DEFAUT) ?? ENTREPRISE_DEFAUT
+  const lie = useLiveQuery(
+    async () => (facture?.lien ? db.factures.get(facture.lien) : undefined),
+    [facture?.lien], undefined,
+  )
   const doublon = useLiveQuery(
     async () => (facture?.numero
       ? (await db.factures.where('numero').equals(facture.numero).count()) > 1
@@ -97,10 +101,19 @@ export default function FactureDetail() {
     else setMessage(`Code ${code} absent du catalogue.`)
   }
 
+  const bon = estBon(facture)
+  const nomDoc = bon ? 'le bon de commande' : 'la facture'
+
   const supprime = async () => {
-    if (!confirm(`Supprimer la facture n° ${facture.numero} ?`)) return
+    if (!confirm(`Supprimer ${nomDoc} n° ${facture.numero} ?`)) return
     await db.factures.delete(facture.id)
-    navigate('/factures', { replace: true })
+    navigate(bon ? '/factures?vue=bons' : '/factures', { replace: true })
+  }
+
+  const facturer = async () => {
+    if (!confirm('Créer la facture de ce bon de commande ? Elle reprend le client et les articles, datée d’aujourd’hui.')) return
+    const f = await factureDepuisBon(facture, aujourdhui())
+    navigate(`/facture/${f.id}`)
   }
 
   const imprime = async () => {
@@ -119,20 +132,28 @@ export default function FactureDetail() {
   return (
     <div className="pile">
       <div className="carte pile">
-        <h2>Facture</h2>
+        <h2>{bon ? 'Bon de commande' : 'Facture'}</h2>
         <div className="f-grille">
           {champ('numero', 'Numéro', { className: 'mono' })}
           {champ('date', "Date d'émission", { type: 'date' })}
         </div>
         {doublon && (
           <p className="petit" style={{ color: 'var(--danger)' }}>
-            Ce numéro existe déjà sur une autre facture : chaque numéro doit être unique.
+            Ce numéro existe déjà sur un autre document : chaque numéro doit être unique.
           </p>
         )}
         <div className="f-grille">
-          {champ('dateVente', 'Date de la vente (si différente)', { type: 'date' })}
-          {champ('echeance', 'Échéance de paiement', { type: 'date' })}
+          {bon
+            ? champ('dateVente', 'Retrait / livraison prévu le', { type: 'date' })
+            : champ('dateVente', 'Date de la vente (si différente)', { type: 'date' })}
+          {!bon && champ('echeance', 'Échéance de paiement', { type: 'date' })}
         </div>
+        {lie && (
+          <p className="petit">
+            {bon ? 'Facturé : ' : 'Issue du bon de commande '}
+            <Link to={`/facture/${lie.id}`} className="mono">n° {lie.numero}</Link>
+          </p>
+        )}
       </div>
 
       <div className="carte pile">
@@ -274,6 +295,15 @@ export default function FactureDetail() {
         {franchise && <p className="petit doux">TVA non applicable, art. 293 B du CGI</p>}
       </div>
 
+      {bon ? (
+      <div className="carte pile">
+        <div>
+          <label htmlFor="f-note">Note sur le bon</label>
+          <textarea id="f-note" value={facture.note} placeholder="Ex. plateau pour 10 personnes, sans porc…"
+            onChange={(e) => maj({ note: e.target.value })} />
+        </div>
+      </div>
+      ) : (
       <div className="carte pile">
         <h2>Paiement</h2>
         <div>
@@ -294,12 +324,19 @@ export default function FactureDetail() {
           <textarea id="f-note" value={facture.note} onChange={(e) => maj({ note: e.target.value })} />
         </div>
       </div>
+      )}
+
+      {bon && !facture.lien && (
+        <button type="button" className="principal haut large" onClick={facturer}>
+          Transformer en facture
+        </button>
+      )}
 
       <button type="button" className="principal large" onClick={imprime}>
-        <IconeExport /> Télécharger la facture (PDF)
+        <IconeExport /> Télécharger {bon ? 'le bon' : 'la facture'} (PDF)
       </button>
       <button type="button" className="destructif large" onClick={supprime}>
-        <IconeCorbeille /> Supprimer la facture
+        <IconeCorbeille /> Supprimer {nomDoc}
       </button>
     </div>
   )

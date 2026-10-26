@@ -27,3 +27,12 @@ test('les relevés conservent leur date sans recevoir de calendrier équipement'
     equipementId: 'frigo', jour: '2026-10-10', temp: 3, aSynchroniser: 1,
   }), { equipement_id: 'frigo', jour: '2026-10-10', temp: 3 })
 })
+
+test('envoi des factures créées avant les bons de commande sans type NULL', () => {
+  const payload = [{ id: 'ancienne', numero: '2026-0001' }, { id: 'bon', type: 'bon', lien: 'f1' }]
+    .map(l => versServeur('factures', l))
+  assert.deepEqual(payload, [
+    { id: 'ancienne', numero: '2026-0001', type: 'facture', lien: '' },
+    { id: 'bon', type: 'bon', lien: 'f1' },
+  ])
+})

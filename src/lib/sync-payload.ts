@@ -11,5 +11,10 @@ export function versServeur(nom: string, ligne: Record<string, unknown>): Record
     sortie.jours_ouverture ??= ''
     sortie.exceptions ??= ''
   }
+  if (nom === 'factures') {
+    // Factures créées avant les bons de commande : mêmes raisons qu'au-dessus.
+    sortie.type ??= 'facture'
+    sortie.lien ??= ''
+  }
   return sortie
 }
