@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, getReglage, setReglage, uid } from '../db/db'
 import { euro, nombre, normalise } from '../lib/format'
@@ -17,9 +17,21 @@ const chargePdf = () => import('../lib/pdf')
 
 const parNom = (a: Produit, b: Produit) => a.nom.localeCompare(b.nom, 'fr')
 
-/** Les pièces à la coupe d'abord, rangées par rayon puis par date, puis les produits. */
+/** Deux onglets : les produits par rayon, et la coupe rangée par rayon puis par date. */
 export default function Catalogue() {
-  return <CatalogueProduits />
+  const [params, setParams] = useSearchParams()
+  const vue = params.get('vue') === 'coupe' ? 'coupe' : 'produits'
+  return (
+    <div className="pile">
+      <div className="onglets">
+        <button type="button" className={vue === 'produits' ? 'actif' : ''}
+          onClick={() => setParams({}, { replace: true })}>Produits</button>
+        <button type="button" className={vue === 'coupe' ? 'actif' : ''}
+          onClick={() => setParams({ vue: 'coupe' }, { replace: true })}>À la coupe</button>
+      </div>
+      {vue === 'coupe' ? <ALaCoupe /> : <CatalogueProduits />}
+    </div>
+  )
 }
 
 function CatalogueProduits() {
@@ -220,8 +232,6 @@ function CatalogueProduits() {
           </button>
         )}
       </details>
-
-      {!rayon && !dossier && <ALaCoupe recherche={q} />}
 
       <div className="tuiles">
         <div className="tuile">
