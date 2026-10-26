@@ -17,7 +17,7 @@ import { versServeur } from './sync-payload'
 const CLE_PRIMAIRE: Record<TableSynchronisee, string> = {
   produits: 'id', equipements: 'id', releves: 'id', receptions: 'id', lots: 'id',
   taches: 'id', nettoyages: 'id', operateurs: 'id', reglages: 'cle',
-  clients: 'id', commandes: 'id', lignesCommande: 'id', factures: 'id',
+  clients: 'id', commandes: 'id', lignesCommande: 'id', factures: 'id', ouvertures: 'id',
 }
 
 /**

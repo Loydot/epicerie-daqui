@@ -225,6 +225,23 @@ export interface LigneFacture {
   tva: number
 }
 
+export type CategorieCoupe = 'charcuterie' | 'boucherie' | 'fromage' | 'traiteur' | 'autre'
+
+/** Une pièce entamée à la coupe : on sait quand elle a été ouverte. */
+export interface Ouverture extends Synchronisable {
+  id: Id
+  /** Nom libre, ex. « Brebis Ossau-Iraty ». */
+  nom: string
+  categorie: CategorieCoupe
+  /** Date et heure d'ouverture, ISO 8601 local (AAAA-MM-JJTHH:MM). */
+  ouvertLe: string
+  /** Fin de la pièce, même format ; vide tant qu'elle est en vente. */
+  finiLe: string
+  operateur: string
+  note: string
+  creeLe: string
+}
+
 export type TypeDocument = 'facture' | 'bon'
 
 export interface Facture extends Synchronisable {

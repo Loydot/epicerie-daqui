@@ -426,3 +426,11 @@ input[type="number"] { font-variant-numeric: tabular-nums; }
 }
 .f-total { text-align: right; font-variant-numeric: tabular-nums; }
 .f-total strong { font-size: 1.05rem; }
+
+/* ---------- Puces de choix (rayons de la coupe) ---------- */
+.puces { display: flex; flex-wrap: wrap; gap: 6px; }
+.puces button {
+  min-height: 38px; padding: 0 14px; border-radius: 999px;
+  font-size: .9rem; font-weight: 600;
+}
+.puces button.actif { background: var(--accent); border-color: var(--accent); color: #fff; }

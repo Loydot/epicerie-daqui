@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, getReglage, setReglage, uid } from '../db/db'
 import { euro, nombre, normalise } from '../lib/format'
@@ -8,6 +8,7 @@ import { exporteCatalogueCsv } from '../lib/export'
 import { rangSection, SECTIONS } from '../lib/sections'
 import type { Produit, Section } from '../db/types'
 import { dossierDuProduit, litDossiersCatalogue, type DossierCatalogue } from '../lib/dossiers'
+import ALaCoupe from './ALaCoupe'
 
 type Tri = 'rayon' | 'recent' | 'stock' | 'valeur'
 
@@ -17,6 +18,22 @@ const chargePdf = () => import('../lib/pdf')
 const parNom = (a: Produit, b: Produit) => a.nom.localeCompare(b.nom, 'fr')
 
 export default function Catalogue() {
+  const [params, setParams] = useSearchParams()
+  const vue = params.get('vue') === 'coupe' ? 'coupe' : 'produits'
+  return (
+    <div className="pile">
+      <div className="onglets">
+        <button type="button" className={vue === 'produits' ? 'actif' : ''}
+          onClick={() => setParams({}, { replace: true })}>Produits</button>
+        <button type="button" className={vue === 'coupe' ? 'actif' : ''}
+          onClick={() => setParams({ vue: 'coupe' }, { replace: true })}>À la coupe</button>
+      </div>
+      {vue === 'coupe' ? <ALaCoupe /> : <CatalogueProduits />}
+    </div>
+  )
+}
+
+function CatalogueProduits() {
   const produits = useLiveQuery(() => db.produits.toArray(), [], undefined)
   const [q, setQ] = useState('')
   const [rayon, setRayon] = useState<Section | ''>('')

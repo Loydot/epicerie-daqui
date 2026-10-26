@@ -80,7 +80,7 @@ export const NOMS_TABLES: Record<TableSynchronisee, string> = {
   receptions: 'Réceptions', lots: 'Dates limites (lots)', taches: 'Tâches de nettoyage',
   nettoyages: 'Nettoyages effectués', operateurs: 'Personnes', reglages: 'Réglages',
   clients: 'Clients', commandes: 'Commandes', lignesCommande: 'Lignes de commande',
-  factures: 'Factures',
+  factures: 'Factures', ouvertures: 'À la coupe',
 }
 
 const CLE: Partial<Record<TableSynchronisee, string>> = { reglages: 'cle' }
@@ -111,6 +111,7 @@ export function decrit(
     case 'clients': return { titre: s(l.nom), detail: s(l.telephone) }
     case 'commandes': return { titre: nomDans('clients', l.clientId), detail: dateHeureFr(s(l.date)) }
     case 'lignesCommande': return { titre: s(l.libelle), detail: `Quantité ${s(l.quantite)}` }
+    case 'ouvertures': return { titre: s(l.nom), detail: `${s(l.categorie)} · ouvert le ${dateHeureFr(s(l.ouvertLe))}` }
     case 'factures': return { titre: `N° ${s(l.numero)} — ${s(l.clientNom) || 'client'}`, detail: dateFr(s(l.date)) }
   }
 }
