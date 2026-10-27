@@ -20,3 +20,6 @@ grant select, insert, update, delete on ouvertures to authenticated;
 drop trigger if exists maj_le_ouvertures on ouvertures;
 create trigger maj_le_ouvertures before insert or update on ouvertures
   for each row execute function touche_maj_le();
+
+-- Photo de la pièce (JPEG réduit, en data URL).
+alter table ouvertures add column if not exists photo text not null default '';

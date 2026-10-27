@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, getReglage, setReglage, uid } from '../db/db'
 import type { CategorieCoupe, Ouverture } from '../db/types'
 import { normalise } from '../lib/format'
+import { photoReduite } from '../lib/photo'
 import { useOperateur } from '../lib/operateur'
 import { IconeCorbeille, IconePlus, IconeRecherche, IconeValide } from '../components/Icones'
 
@@ -39,6 +40,34 @@ function useCategories() {
     return nom
   }
   return { categories, ajoute }
+}
+
+/** Bouton « Prendre une photo » : ouvre l'appareil photo sur téléphone. */
+function ChoixPhoto({ photo, surPhoto }: { photo: string; surPhoto: (p: string) => void }) {
+  const [enCours, setEnCours] = useState(false)
+  const champ = useRef<HTMLInputElement>(null)
+  return (
+    <div className="pile">
+      {photo && (
+        <img src={photo} alt="" style={{ width: '100%', maxHeight: 260, objectFit: 'cover', borderRadius: 10 }} />
+      )}
+      <div className="ligne">
+        <button type="button" className="champ" disabled={enCours} onClick={() => champ.current?.click()}>
+          {enCours ? 'Photo…' : photo ? 'Changer la photo' : 'Prendre une photo'}
+        </button>
+          <input ref={champ} type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
+            onChange={async (e) => {
+              const f = e.target.files?.[0]
+              e.target.value = ''
+              if (!f) return
+              setEnCours(true)
+              try { surPhoto(await photoReduite(f)) } catch { alert('Impossible de lire cette photo.') }
+              finally { setEnCours(false) }
+            }} />
+        {photo && <button type="button" onClick={() => { if (confirm('Retirer la photo ?')) surPhoto('') }}>Retirer</button>}
+      </div>
+    </div>
+  )
 }
 
 /** Nom affiché, y compris pour une catégorie qui n'est plus dans la liste (ancien « Autre »). */
@@ -89,6 +118,7 @@ export default function ALaCoupe({ recherche }: { recherche?: string } = {}) {
   const [categorie, setCategorie] = useState<CategorieCoupe>('fromage')
   const [date, setDate] = useState(maintenant())
   const [detail, setDetail] = useState('')
+  const [photo, setPhoto] = useState('')
 
   const toutes = useLiveQuery(() => db.ouvertures.toArray(), [], []) ?? []
 
@@ -127,9 +157,10 @@ export default function ALaCoupe({ recherche }: { recherche?: string } = {}) {
     if (!nom.trim()) return
     await db.ouvertures.add({
       id: uid(), nom: nom.trim(), categorie, ouvertLe: date || maintenant(), finiLe: '',
-      operateur, note: '', creeLe: new Date().toISOString(),
+      operateur, note: '', photo, creeLe: new Date().toISOString(),
     })
     setNom('')
+    setPhoto('')
     setDate(maintenant())
     setOuvert(false)
   }
@@ -200,6 +231,7 @@ export default function ALaCoupe({ recherche }: { recherche?: string } = {}) {
             <label htmlFor="c-date">Ouvert le</label>
             <input id="c-date" type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} />
           </div>
+          <ChoixPhoto photo={photo} surPhoto={setPhoto} />
           <div className="ligne">
             <button type="button" className="champ" onClick={() => setOuvert(false)}>Annuler</button>
             <button type="button" className="champ principal" disabled={!nom.trim()} onClick={enregistre}>
@@ -226,6 +258,7 @@ export default function ALaCoupe({ recherche }: { recherche?: string } = {}) {
               <div key={o.id}>
                 <button type="button" className="item" style={{ width: '100%', textAlign: 'left' }}
                   onClick={() => setDetail(detail === o.id ? '' : o.id)}>
+                  {o.photo && <img className="vignette" src={o.photo} alt="" loading="lazy" />}
                   <div className="item-corps">
                     <div className="item-nom">{o.nom}</div>
                     <div className="petit doux">
@@ -276,6 +309,7 @@ function EditionPiece({ piece, categories, ajoute, surFermer }: {
         <label>Note</label>
         <input value={piece.note} placeholder="Ex. lot, fournisseur…" onChange={(e) => maj({ note: e.target.value })} />
       </div>
+      <ChoixPhoto photo={piece.photo ?? ''} surPhoto={(p) => maj({ photo: p })} />
       <div className="ligne">
         {piece.finiLe ? (
           <button type="button" className="champ" onClick={() => maj({ finiLe: '' })}>Remettre en vente</button>

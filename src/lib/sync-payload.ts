@@ -16,5 +16,9 @@ export function versServeur(nom: string, ligne: Record<string, unknown>): Record
     sortie.type ??= 'facture'
     sortie.lien ??= ''
   }
+  if (nom === 'ouvertures') {
+    // Pièces ouvertes avant l'ajout des photos.
+    sortie.photo ??= ''
+  }
   return sortie
 }

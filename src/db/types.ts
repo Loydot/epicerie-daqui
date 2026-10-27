@@ -240,6 +240,8 @@ export interface Ouverture extends Synchronisable {
   finiLe: string
   operateur: string
   note: string
+  /** Photo de la pièce, JPEG réduit en data URL ; absente ou vide sinon. */
+  photo?: string
   creeLe: string
 }
 
