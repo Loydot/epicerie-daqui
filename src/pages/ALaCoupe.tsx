@@ -45,27 +45,33 @@ function useCategories() {
 /** Bouton « Prendre une photo » : ouvre l'appareil photo sur téléphone. */
 function ChoixPhoto({ photo, surPhoto }: { photo: string; surPhoto: (p: string) => void }) {
   const [enCours, setEnCours] = useState(false)
-  const champ = useRef<HTMLInputElement>(null)
+  const appareil = useRef<HTMLInputElement>(null)
+  const galerie = useRef<HTMLInputElement>(null)
+  const lit = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0]
+    e.target.value = ''
+    if (!f) return
+    setEnCours(true)
+    try { surPhoto(await photoReduite(f)) } catch { alert('Impossible de lire cette photo.') }
+    finally { setEnCours(false) }
+  }
   return (
     <div className="pile">
       {photo && (
         <img src={photo} alt="" style={{ width: '100%', maxHeight: 260, objectFit: 'cover', borderRadius: 10 }} />
       )}
-      <div className="ligne">
-        <button type="button" className="champ" disabled={enCours} onClick={() => champ.current?.click()}>
-          {enCours ? 'Photo…' : photo ? 'Changer la photo' : 'Prendre une photo'}
+      <div className="ligne" style={{ flexWrap: 'wrap' }}>
+        <button type="button" className="champ" disabled={enCours} onClick={() => appareil.current?.click()}>
+          {enCours ? 'Photo…' : 'Prendre une photo'}
         </button>
-          <input ref={champ} type="file" accept="image/*" capture="environment" style={{ display: 'none' }}
-            onChange={async (e) => {
-              const f = e.target.files?.[0]
-              e.target.value = ''
-              if (!f) return
-              setEnCours(true)
-              try { surPhoto(await photoReduite(f)) } catch { alert('Impossible de lire cette photo.') }
-              finally { setEnCours(false) }
-            }} />
+        <button type="button" className="champ" disabled={enCours} onClick={() => galerie.current?.click()}>
+          Choisir une photo
+        </button>
         {photo && <button type="button" onClick={() => { if (confirm('Retirer la photo ?')) surPhoto('') }}>Retirer</button>}
       </div>
+      {/* Avec « capture » : l'appareil photo. Sans : la galerie et les fichiers. */}
+      <input ref={appareil} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={lit} />
+      <input ref={galerie} type="file" accept="image/*" style={{ display: 'none' }} onChange={lit} />
     </div>
   )
 }
