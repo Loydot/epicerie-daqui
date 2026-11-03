@@ -6,6 +6,13 @@ import { ChoixOperateur, useOperateur } from '../lib/operateur'
 import { exporteReceptionsCsv } from '../lib/export'
 import { IconeAlerte, IconeCamion, IconeExport, IconeValide } from '../components/Icones'
 
+/** « 2026-11-03T09:12 » à l'heure locale, pour un champ datetime-local. */
+function maintenantLocal(): string {
+  const d = new Date()
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`
+}
+
 const vide = {
   fournisseur: '', bonLivraison: '', temp: '',
   emballageOk: true, dlcOk: true, motif: '',
@@ -15,6 +22,8 @@ export default function Receptions() {
   const [operateur, setOperateur, operateurs] = useOperateur()
   const [f, setF] = useState({ ...vide })
   const [ouvert, setOuvert] = useState(false)
+  // Modifiable pour saisir une réception passée.
+  const [quand, setQuand] = useState(maintenantLocal())
 
   const receptions = useLiveQuery(
     () => db.receptions.orderBy('date').reverse().limit(60).toArray(), [], [],
@@ -29,7 +38,8 @@ export default function Receptions() {
   const peutValider = f.fournisseur.trim() !== '' && (conforme || f.motif.trim() !== '')
 
   const enregistre = async () => {
-    const maintenant = new Date()
+    const choisie = new Date(quand)
+    const maintenant = Number.isNaN(choisie.getTime()) ? new Date() : choisie
     const temp = f.temp.replace(',', '.')
     await db.receptions.add({
       id: uid(),
@@ -52,7 +62,7 @@ export default function Receptions() {
   return (
     <div className="pile">
       {!ouvert && (
-        <button type="button" className="principal haut large" onClick={() => setOuvert(true)}>
+        <button type="button" className="principal haut large" onClick={() => { setQuand(maintenantLocal()); setOuvert(true) }}>
           <IconeCamion /> Nouveau contrôle à réception
         </button>
       )}
@@ -64,6 +74,15 @@ export default function Receptions() {
           {operateurs.length > 0 && (
             <ChoixOperateur valeur={operateur} surChangement={setOperateur} options={operateurs} />
           )}
+
+          <div>
+            <label htmlFor="r-quand">Date et heure de la réception</label>
+            <input id="r-quand" type="datetime-local" value={quand} max={maintenantLocal()}
+              onChange={(e) => setQuand(e.target.value)} />
+            {quand.slice(0, 10) !== maintenantLocal().slice(0, 10) && (
+              <p className="petit doux" style={{ margin: '4px 0 0' }}>Réception passée, enregistrée à cette date.</p>
+            )}
+          </div>
 
           <div>
             <label htmlFor="r-four">Fournisseur</label>
