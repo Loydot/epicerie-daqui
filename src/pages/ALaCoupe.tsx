@@ -43,8 +43,13 @@ function useCategories() {
 }
 
 /** Bouton « Prendre une photo » : ouvre l'appareil photo sur téléphone. */
-function ChoixPhoto({ photo, surPhoto }: { photo: string; surPhoto: (p: string) => void }) {
+function ChoixPhoto({ photo, surPhoto, nomFichier = 'photo-coupe' }: {
+  photo: string
+  surPhoto: (p: string) => void
+  nomFichier?: string
+}) {
   const [enCours, setEnCours] = useState(false)
+  const [agrandie, setAgrandie] = useState(false)
   const appareil = useRef<HTMLInputElement>(null)
   const galerie = useRef<HTMLInputElement>(null)
   const lit = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -55,10 +60,35 @@ function ChoixPhoto({ photo, surPhoto }: { photo: string; surPhoto: (p: string) 
     try { surPhoto(await photoReduite(f)) } catch { alert('Impossible de lire cette photo.') }
     finally { setEnCours(false) }
   }
+  const telecharge = () => {
+    if (!photo) return
+    const lien = document.createElement('a')
+    lien.href = photo
+    lien.download = `${normalise(nomFichier).replace(/[^a-z0-9]+/g, '-') || 'photo-coupe'}.jpg`
+    lien.click()
+  }
   return (
     <div className="pile">
       {photo && (
-        <img src={photo} alt="" style={{ width: '100%', maxHeight: 260, objectFit: 'cover', borderRadius: 10 }} />
+        <>
+          <button type="button" className="photo-coupe-apercu" onClick={() => setAgrandie(true)} aria-label="Agrandir la photo">
+            <img src={photo} alt="Photo de la pièce" />
+          </button>
+          <div className="ligne" style={{ flexWrap: 'wrap' }}>
+            <button type="button" className="champ" onClick={() => setAgrandie(true)}>Agrandir la photo</button>
+            <button type="button" className="champ" onClick={telecharge}>Télécharger la photo</button>
+          </div>
+          {agrandie && (
+            <div className="photo-coupe-zoom" role="dialog" aria-modal="true" aria-label="Photo agrandie"
+              onClick={() => setAgrandie(false)}>
+              <button type="button" className="photo-coupe-fermer" onClick={() => setAgrandie(false)}>Fermer</button>
+              <img src={photo} alt="Photo agrandie de la pièce" onClick={(e) => e.stopPropagation()} />
+              <button type="button" className="champ" onClick={(e) => { e.stopPropagation(); telecharge() }}>
+                Télécharger la photo
+              </button>
+            </div>
+          )}
+        </>
       )}
       <div className="ligne" style={{ flexWrap: 'wrap' }}>
         <button type="button" className="champ" disabled={enCours} onClick={() => appareil.current?.click()}>
@@ -87,18 +117,27 @@ function maintenant(): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`
 }
 
+/** Date locale seule, sans forcer l'utilisateur à préciser une heure. */
+function dateLocale(): string {
+  const d = new Date()
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
+}
+
 function quand(iso: string): string {
   if (!iso) return '—'
-  const d = new Date(iso)
+  const d = new Date(iso.length === 10 ? `${iso}T12:00:00` : iso)
   if (Number.isNaN(d.getTime())) return '—'
-  return d.toLocaleString('fr-FR', {
-    weekday: 'short', day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit',
-  })
+  const options: Intl.DateTimeFormatOptions = {
+    weekday: 'short', day: '2-digit', month: '2-digit', year: '2-digit',
+    ...(iso.length > 10 ? { hour: '2-digit', minute: '2-digit' } : {}),
+  }
+  return d.toLocaleString('fr-FR', options)
 }
 
 /** « aujourd'hui », « hier », « il y a 4 jours ». */
 function depuis(iso: string): string {
-  const d = new Date(iso)
+  const d = new Date(iso.length === 10 ? `${iso}T12:00:00` : iso)
   if (Number.isNaN(d.getTime())) return ''
   const jour = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime()
   const n = Math.round((jour(new Date()) - jour(d)) / 86_400_000)
@@ -122,7 +161,8 @@ export default function ALaCoupe({ recherche }: { recherche?: string } = {}) {
   const [ouvert, setOuvert] = useState(false)
   const [nom, setNom] = useState('')
   const [categorie, setCategorie] = useState<CategorieCoupe>('fromage')
-  const [date, setDate] = useState(maintenant())
+  const [date, setDate] = useState(dateLocale())
+  const [heure, setHeure] = useState('')
   const [detail, setDetail] = useState('')
   const [photo, setPhoto] = useState('')
 
@@ -160,14 +200,15 @@ export default function ALaCoupe({ recherche }: { recherche?: string } = {}) {
   }, [toutes, nom])
 
   const enregistre = async () => {
-    if (!nom.trim()) return
+    if (!nom.trim() || !date) return
     await db.ouvertures.add({
-      id: uid(), nom: nom.trim(), categorie, ouvertLe: date || maintenant(), finiLe: '',
+      id: uid(), nom: nom.trim(), categorie, ouvertLe: `${date}${heure ? `T${heure}` : ''}`, finiLe: '',
       operateur, note: '', photo, creeLe: new Date().toISOString(),
     })
     setNom('')
     setPhoto('')
-    setDate(maintenant())
+    setDate(dateLocale())
+    setHeure('')
     setOuvert(false)
   }
 
@@ -200,7 +241,7 @@ export default function ALaCoupe({ recherche }: { recherche?: string } = {}) {
       </div>
 
       {!ouvert ? (
-        <button type="button" className="principal haut large" onClick={() => { setDate(maintenant()); setOuvert(true) }}>
+        <button type="button" className="principal haut large" onClick={() => { setDate(dateLocale()); setHeure(''); setOuvert(true) }}>
           <IconePlus /> Ouvrir une pièce
         </button>
       ) : (
@@ -233,14 +274,20 @@ export default function ALaCoupe({ recherche }: { recherche?: string } = {}) {
                 onClick={async () => { const c = await ajoute(); if (c) setCategorie(c) }}>+</button>
             </div>
           </div>
-          <div>
-            <label htmlFor="c-date">Ouvert le</label>
-            <input id="c-date" type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} />
+          <div className="deux-champs">
+            <div>
+              <label htmlFor="c-date">Date d'ouverture</label>
+              <input id="c-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            </div>
+            <div>
+              <label htmlFor="c-heure">Heure (facultative)</label>
+              <input id="c-heure" type="time" value={heure} onChange={(e) => setHeure(e.target.value)} />
+            </div>
           </div>
-          <ChoixPhoto photo={photo} surPhoto={setPhoto} />
+          <ChoixPhoto photo={photo} surPhoto={setPhoto} nomFichier={nom || 'photo-coupe'} />
           <div className="ligne">
             <button type="button" className="champ" onClick={() => setOuvert(false)}>Annuler</button>
-            <button type="button" className="champ principal" disabled={!nom.trim()} onClick={enregistre}>
+            <button type="button" className="champ principal" disabled={!nom.trim() || !date} onClick={enregistre}>
               <IconeValide /> Enregistrer
             </button>
           </div>
@@ -307,15 +354,25 @@ function EditionPiece({ piece, categories, ajoute, surFermer }: {
         <button type="button" aria-label="Ajouter un rayon"
           onClick={async () => { const c = await ajoute(); if (c) maj({ categorie: c }) }}>+</button>
       </div>
-      <div>
-        <label>Ouvert le</label>
-        <input type="datetime-local" value={piece.ouvertLe} onChange={(e) => maj({ ouvertLe: e.target.value })} />
+      <div className="deux-champs">
+        <div>
+          <label htmlFor={`ouvert-date-${piece.id}`}>Date d'ouverture</label>
+          <input id={`ouvert-date-${piece.id}`} type="date" value={piece.ouvertLe.slice(0, 10)}
+            onChange={(e) => maj({ ouvertLe: e.target.value
+              ? `${e.target.value}${piece.ouvertLe.length > 10 ? `T${piece.ouvertLe.slice(11, 16)}` : ''}`
+              : '' })} />
+        </div>
+        <div>
+          <label htmlFor={`ouvert-heure-${piece.id}`}>Heure (facultative)</label>
+          <input id={`ouvert-heure-${piece.id}`} type="time" value={piece.ouvertLe.length > 10 ? piece.ouvertLe.slice(11, 16) : ''}
+            onChange={(e) => maj({ ouvertLe: `${piece.ouvertLe.slice(0, 10)}${e.target.value ? `T${e.target.value}` : ''}` })} />
+        </div>
       </div>
       <div>
         <label>Note</label>
         <input value={piece.note} placeholder="Ex. lot, fournisseur…" onChange={(e) => maj({ note: e.target.value })} />
       </div>
-      <ChoixPhoto photo={piece.photo ?? ''} surPhoto={(p) => maj({ photo: p })} />
+      <ChoixPhoto photo={piece.photo ?? ''} surPhoto={(p) => maj({ photo: p })} nomFichier={piece.nom} />
       <div className="ligne">
         {piece.finiLe ? (
           <button type="button" className="champ" onClick={() => maj({ finiLe: '' })}>Remettre en vente</button>

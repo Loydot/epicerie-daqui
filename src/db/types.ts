@@ -234,7 +234,7 @@ export interface Ouverture extends Synchronisable {
   /** Nom libre, ex. « Brebis Ossau-Iraty ». */
   nom: string
   categorie: CategorieCoupe
-  /** Date et heure d'ouverture, ISO 8601 local (AAAA-MM-JJTHH:MM). */
+  /** Date d'ouverture (AAAA-MM-JJ), heure facultative (AAAA-MM-JJTHH:MM). */
   ouvertLe: string
   /** Fin de la pièce, même format ; vide tant qu'elle est en vente. */
   finiLe: string
