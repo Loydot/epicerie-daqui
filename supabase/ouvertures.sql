@@ -26,3 +26,4 @@ alter table ouvertures add column if not exists photo text not null default '';
 
 -- Photo séparée de l'étiquette (JPEG réduit, en data URL).
 alter table ouvertures add column if not exists photo_etiquette text not null default '';
+alter table ouvertures add column if not exists allergenes text not null default '';

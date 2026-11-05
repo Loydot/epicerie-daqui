@@ -20,6 +20,7 @@ export function versServeur(nom: string, ligne: Record<string, unknown>): Record
     // Compatibilité avec les pièces créées avant l'ajout de leurs photos.
     sortie.photo ??= ''
     sortie.photo_etiquette ??= ''
+    sortie.allergenes ??= ''
   }
   return sortie
 }

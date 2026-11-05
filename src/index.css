@@ -438,6 +438,7 @@ input[type="number"] { font-variant-numeric: tabular-nums; }
 }
 .photo-coupe-fermer { position: absolute; top: 12px; right: 12px; }
 .photos-coupe > div { min-width: 0; }
+.allergenes-piece { margin-top: 4px; line-height: 1.35; color: var(--texte); }
 .photo-coupe-commandes {
   display: flex;
   align-items: center;

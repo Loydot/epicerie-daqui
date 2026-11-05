@@ -244,6 +244,8 @@ export interface Ouverture extends Synchronisable {
   photo?: string
   /** Photo distincte de l'étiquette, pour lire les ingrédients et allergènes. */
   photoEtiquette?: string
+  /** Suggestions d'allergènes issues de la lecture de l'étiquette, à vérifier. */
+  allergenes?: string
   creeLe: string
 }
 

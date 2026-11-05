@@ -43,11 +43,12 @@ function useCategories() {
 }
 
 /** Bouton « Prendre une photo » : ouvre l'appareil photo sur téléphone. */
-function ChoixPhoto({ photo, surPhoto, nomFichier = 'photo-coupe', description }: {
+function ChoixPhoto({ photo, surPhoto, nomFichier = 'photo-coupe', description, apercuVisible = true }: {
   photo: string
   surPhoto: (p: string) => void
   nomFichier?: string
   description: string
+  apercuVisible?: boolean
 }) {
   const [enCours, setEnCours] = useState(false)
   const [agrandie, setAgrandie] = useState(false)
@@ -74,11 +75,15 @@ function ChoixPhoto({ photo, surPhoto, nomFichier = 'photo-coupe', description }
     <div className="pile">
       {photo && (
         <>
-          <button type="button" className="photo-coupe-apercu" onClick={ouvreZoom} aria-label="Agrandir la photo">
-            <img src={photo} alt={description} />
-          </button>
+          {apercuVisible && (
+            <button type="button" className="photo-coupe-apercu" onClick={ouvreZoom} aria-label="Agrandir la photo">
+              <img src={photo} alt={description} />
+            </button>
+          )}
           <div className="ligne" style={{ flexWrap: 'wrap' }}>
-            <button type="button" className="champ" onClick={ouvreZoom}>Agrandir la photo</button>
+            <button type="button" className="champ" onClick={ouvreZoom}>
+              {apercuVisible ? 'Agrandir la photo' : "Voir l'étiquette"}
+            </button>
             <button type="button" className="champ" onClick={telecharge}>Télécharger la photo</button>
           </div>
           {agrandie && (
@@ -115,6 +120,48 @@ function ChoixPhoto({ photo, surPhoto, nomFichier = 'photo-coupe', description }
       {/* Avec « capture » : l'appareil photo. Sans : la galerie et les fichiers. */}
       <input ref={appareil} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={lit} />
       <input ref={galerie} type="file" accept="image/*" style={{ display: 'none' }} onChange={lit} />
+    </div>
+  )
+}
+
+/** OCR en français : les pistes restent éditables et doivent être vérifiées. */
+function LectureAllergenes({ id, photo, valeur, surValeur }: {
+  id: string
+  photo: string
+  valeur: string
+  surValeur: (v: string) => void
+}) {
+  const [enCours, setEnCours] = useState(false)
+  const [etat, setEtat] = useState('')
+  const analyse = async () => {
+    if (!photo) return
+    setEnCours(true)
+    setEtat('Démarrage de la lecture…')
+    try {
+      const { litAllergenesEtiquette } = await import('../lib/allergenes')
+      const trouves = await litAllergenesEtiquette(photo, setEtat)
+      if (trouves.length) surValeur(trouves.join(', '))
+      setEtat(trouves.length
+        ? `${trouves.length} piste${trouves.length > 1 ? 's' : ''} détectée${trouves.length > 1 ? 's' : ''} — vérifie la liste sur l'étiquette.`
+        : "Aucun allergène reconnu : vérifie l'étiquette et complète la liste toi-même.")
+    } catch {
+      setEtat("Lecture impossible. Vérifie la connexion, puis réessaie ou saisis les allergènes manuellement.")
+    } finally {
+      setEnCours(false)
+    }
+  }
+  return (
+    <div className="pile">
+      <button type="button" className="champ" disabled={!photo || enCours} onClick={() => void analyse()}>
+        {enCours ? etat || 'Lecture…' : "Lire les allergènes de l'étiquette"}
+      </button>
+      <div>
+        <label htmlFor={id}>Allergènes repérés (à vérifier)</label>
+        <textarea id={id} rows={2} value={valeur} placeholder="Ex. lait, moutarde, fruits à coque…"
+          onChange={(e) => surValeur(e.target.value)} />
+      </div>
+      <p className="petit doux">La détection peut se tromper ou en manquer. Vérifie toujours la liste d'ingrédients sur la photo.</p>
+      {etat && !enCours && <p className="petit doux" role="status">{etat}</p>}
     </div>
   )
 }
@@ -179,6 +226,7 @@ export default function ALaCoupe({ recherche }: { recherche?: string } = {}) {
   const [detail, setDetail] = useState('')
   const [photo, setPhoto] = useState('')
   const [photoEtiquette, setPhotoEtiquette] = useState('')
+  const [allergenes, setAllergenes] = useState('')
 
   const toutes = useLiveQuery(() => db.ouvertures.toArray(), [], []) ?? []
 
@@ -217,11 +265,12 @@ export default function ALaCoupe({ recherche }: { recherche?: string } = {}) {
     if (!nom.trim() || !date) return
     await db.ouvertures.add({
       id: uid(), nom: nom.trim(), categorie, ouvertLe: `${date}${heure ? `T${heure}` : ''}`, finiLe: '',
-      operateur, note: '', photo, photoEtiquette, creeLe: new Date().toISOString(),
+      operateur, note: '', photo, photoEtiquette, allergenes, creeLe: new Date().toISOString(),
     })
     setNom('')
     setPhoto('')
     setPhotoEtiquette('')
+    setAllergenes('')
     setDate(dateLocale())
     setHeure('')
     setOuvert(false)
@@ -306,8 +355,9 @@ export default function ALaCoupe({ recherche }: { recherche?: string } = {}) {
             </div>
             <div className="pile">
               <h3>Photo de l'étiquette</h3>
-              <p className="petit doux">Pour agrandir et lire la liste des ingrédients et allergènes.</p>
-              <ChoixPhoto photo={photoEtiquette} surPhoto={setPhotoEtiquette} nomFichier={`${nom || 'produit'}-etiquette`} description="Photo de l'étiquette" />
+              <ChoixPhoto photo={photoEtiquette} surPhoto={setPhotoEtiquette} nomFichier={`${nom || 'produit'}-etiquette`} description="Photo de l'étiquette" apercuVisible={false} />
+              <LectureAllergenes id="allergenes-nouvelle-piece" photo={photoEtiquette}
+                valeur={allergenes} surValeur={setAllergenes} />
             </div>
           </div>
           <div className="ligne">
@@ -343,6 +393,11 @@ export default function ALaCoupe({ recherche }: { recherche?: string } = {}) {
                       Ouvert {quand(o.ouvertLe)} · {depuis(o.ouvertLe)}
                       {o.operateur && ` · ${o.operateur}`}
                     </div>
+                    {o.allergenes && (
+                      <div className="petit allergenes-piece">
+                        <strong>Allergènes (à vérifier) :</strong> {o.allergenes}
+                      </div>
+                    )}
                   </div>
                   {o.finiLe
                     ? <span className="etiquette">Terminé</span>
@@ -406,9 +461,10 @@ function EditionPiece({ piece, categories, ajoute, surFermer }: {
         </div>
         <div className="pile">
           <h3>Photo de l'étiquette</h3>
-          <p className="petit doux">Pour agrandir et lire la liste des ingrédients et allergènes.</p>
           <ChoixPhoto photo={piece.photoEtiquette ?? ''} surPhoto={(p) => maj({ photoEtiquette: p })}
-            nomFichier={`${piece.nom}-etiquette`} description="Photo de l'étiquette" />
+            nomFichier={`${piece.nom}-etiquette`} description="Photo de l'étiquette" apercuVisible={false} />
+          <LectureAllergenes id={`allergenes-${piece.id}`} photo={piece.photoEtiquette ?? ''}
+            valeur={piece.allergenes ?? ''} surValeur={(allergenes) => maj({ allergenes })} />
         </div>
       </div>
       <div className="ligne">
