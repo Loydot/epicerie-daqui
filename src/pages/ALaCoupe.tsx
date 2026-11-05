@@ -43,10 +43,11 @@ function useCategories() {
 }
 
 /** Bouton « Prendre une photo » : ouvre l'appareil photo sur téléphone. */
-function ChoixPhoto({ photo, surPhoto, nomFichier = 'photo-coupe' }: {
+function ChoixPhoto({ photo, surPhoto, nomFichier = 'photo-coupe', description }: {
   photo: string
   surPhoto: (p: string) => void
   nomFichier?: string
+  description: string
 }) {
   const [enCours, setEnCours] = useState(false)
   const [agrandie, setAgrandie] = useState(false)
@@ -74,14 +75,14 @@ function ChoixPhoto({ photo, surPhoto, nomFichier = 'photo-coupe' }: {
       {photo && (
         <>
           <button type="button" className="photo-coupe-apercu" onClick={ouvreZoom} aria-label="Agrandir la photo">
-            <img src={photo} alt="Photo de la pièce" />
+            <img src={photo} alt={description} />
           </button>
           <div className="ligne" style={{ flexWrap: 'wrap' }}>
             <button type="button" className="champ" onClick={ouvreZoom}>Agrandir la photo</button>
             <button type="button" className="champ" onClick={telecharge}>Télécharger la photo</button>
           </div>
           {agrandie && (
-            <div className="photo-coupe-zoom" role="dialog" aria-modal="true" aria-label="Photo agrandie"
+              <div className="photo-coupe-zoom" role="dialog" aria-modal="true" aria-label={`${description} agrandie`}
               onClick={() => setAgrandie(false)}>
               <button type="button" className="photo-coupe-fermer" onClick={() => setAgrandie(false)}>Fermer</button>
               <div className="photo-coupe-commandes" onClick={(e) => e.stopPropagation()}>
@@ -93,7 +94,7 @@ function ChoixPhoto({ photo, surPhoto, nomFichier = 'photo-coupe' }: {
                 <button type="button" className="champ" onClick={telecharge}>Télécharger la photo</button>
               </div>
               <div className="photo-coupe-zone" onClick={(e) => e.stopPropagation()}>
-                <img src={photo} alt="Photo agrandie de la pièce"
+                <img src={photo} alt={`${description} agrandie`}
                   style={niveauZoom === 1 ? undefined : {
                     width: `${niveauZoom * 80}vw`, maxWidth: 'none', maxHeight: 'none',
                   }} />
@@ -177,6 +178,7 @@ export default function ALaCoupe({ recherche }: { recherche?: string } = {}) {
   const [heure, setHeure] = useState('')
   const [detail, setDetail] = useState('')
   const [photo, setPhoto] = useState('')
+  const [photoEtiquette, setPhotoEtiquette] = useState('')
 
   const toutes = useLiveQuery(() => db.ouvertures.toArray(), [], []) ?? []
 
@@ -215,10 +217,11 @@ export default function ALaCoupe({ recherche }: { recherche?: string } = {}) {
     if (!nom.trim() || !date) return
     await db.ouvertures.add({
       id: uid(), nom: nom.trim(), categorie, ouvertLe: `${date}${heure ? `T${heure}` : ''}`, finiLe: '',
-      operateur, note: '', photo, creeLe: new Date().toISOString(),
+      operateur, note: '', photo, photoEtiquette, creeLe: new Date().toISOString(),
     })
     setNom('')
     setPhoto('')
+    setPhotoEtiquette('')
     setDate(dateLocale())
     setHeure('')
     setOuvert(false)
@@ -296,7 +299,17 @@ export default function ALaCoupe({ recherche }: { recherche?: string } = {}) {
               <input id="c-heure" type="time" value={heure} onChange={(e) => setHeure(e.target.value)} />
             </div>
           </div>
-          <ChoixPhoto photo={photo} surPhoto={setPhoto} nomFichier={nom || 'photo-coupe'} />
+          <div className="deux-champs photos-coupe">
+            <div className="pile">
+              <h3>Photo du produit</h3>
+              <ChoixPhoto photo={photo} surPhoto={setPhoto} nomFichier={`${nom || 'produit'}-produit`} description="Photo du produit" />
+            </div>
+            <div className="pile">
+              <h3>Photo de l'étiquette</h3>
+              <p className="petit doux">Pour agrandir et lire la liste des ingrédients et allergènes.</p>
+              <ChoixPhoto photo={photoEtiquette} surPhoto={setPhotoEtiquette} nomFichier={`${nom || 'produit'}-etiquette`} description="Photo de l'étiquette" />
+            </div>
+          </div>
           <div className="ligne">
             <button type="button" className="champ" onClick={() => setOuvert(false)}>Annuler</button>
             <button type="button" className="champ principal" disabled={!nom.trim() || !date} onClick={enregistre}>
@@ -334,6 +347,7 @@ export default function ALaCoupe({ recherche }: { recherche?: string } = {}) {
                   {o.finiLe
                     ? <span className="etiquette">Terminé</span>
                     : <span className="etiquette ok">En vente</span>}
+                  {o.photoEtiquette && <span className="etiquette">Étiquette en photo</span>}
                 </button>
                 {detail === o.id && <EditionPiece piece={o} categories={categories} ajoute={ajoute} surFermer={() => setDetail('')} />}
               </div>
@@ -384,7 +398,19 @@ function EditionPiece({ piece, categories, ajoute, surFermer }: {
         <label>Note</label>
         <input value={piece.note} placeholder="Ex. lot, fournisseur…" onChange={(e) => maj({ note: e.target.value })} />
       </div>
-      <ChoixPhoto photo={piece.photo ?? ''} surPhoto={(p) => maj({ photo: p })} nomFichier={piece.nom} />
+      <div className="deux-champs photos-coupe">
+        <div className="pile">
+          <h3>Photo du produit</h3>
+          <ChoixPhoto photo={piece.photo ?? ''} surPhoto={(p) => maj({ photo: p })}
+            nomFichier={`${piece.nom}-produit`} description="Photo du produit" />
+        </div>
+        <div className="pile">
+          <h3>Photo de l'étiquette</h3>
+          <p className="petit doux">Pour agrandir et lire la liste des ingrédients et allergènes.</p>
+          <ChoixPhoto photo={piece.photoEtiquette ?? ''} surPhoto={(p) => maj({ photoEtiquette: p })}
+            nomFichier={`${piece.nom}-etiquette`} description="Photo de l'étiquette" />
+        </div>
+      </div>
       <div className="ligne">
         {piece.finiLe ? (
           <button type="button" className="champ" onClick={() => maj({ finiLe: '' })}>Remettre en vente</button>

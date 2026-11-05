@@ -17,8 +17,9 @@ export function versServeur(nom: string, ligne: Record<string, unknown>): Record
     sortie.lien ??= ''
   }
   if (nom === 'ouvertures') {
-    // Pièces ouvertes avant l'ajout des photos.
+    // Compatibilité avec les pièces créées avant l'ajout de leurs photos.
     sortie.photo ??= ''
+    sortie.photo_etiquette ??= ''
   }
   return sortie
 }

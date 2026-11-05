@@ -242,6 +242,8 @@ export interface Ouverture extends Synchronisable {
   note: string
   /** Photo de la pièce, JPEG réduit en data URL ; absente ou vide sinon. */
   photo?: string
+  /** Photo distincte de l'étiquette, pour lire les ingrédients et allergènes. */
+  photoEtiquette?: string
   creeLe: string
 }
 

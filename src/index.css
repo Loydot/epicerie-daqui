@@ -397,6 +397,9 @@ input[type="number"] { font-variant-numeric: tabular-nums; }
 @media (max-width: 560px) {
   .dossier-editeur-ligne { grid-template-columns: 1fr; }
 }
+@media (max-width: 700px) {
+  .photos-coupe { grid-template-columns: 1fr; }
+}
 
 .photo-coupe-apercu {
   display: block;
@@ -434,6 +437,7 @@ input[type="number"] { font-variant-numeric: tabular-nums; }
   border-radius: 10px;
 }
 .photo-coupe-fermer { position: absolute; top: 12px; right: 12px; }
+.photos-coupe > div { min-width: 0; }
 .photo-coupe-commandes {
   display: flex;
   align-items: center;

@@ -23,3 +23,6 @@ create trigger maj_le_ouvertures before insert or update on ouvertures
 
 -- Photo de la pièce (JPEG réduit, en data URL).
 alter table ouvertures add column if not exists photo text not null default '';
+
+-- Photo séparée de l'étiquette (JPEG réduit, en data URL).
+alter table ouvertures add column if not exists photo_etiquette text not null default '';
