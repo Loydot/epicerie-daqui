@@ -434,6 +434,23 @@ input[type="number"] { font-variant-numeric: tabular-nums; }
   border-radius: 10px;
 }
 .photo-coupe-fermer { position: absolute; top: 12px; right: 12px; }
+.photo-coupe-commandes {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  color: white;
+}
+.photo-coupe-commandes button { min-width: 42px; }
+.photo-coupe-zone {
+  width: 100%;
+  max-height: calc(100vh - 150px);
+  overflow: auto;
+  text-align: center;
+  overscroll-behavior: contain;
+}
+.photo-coupe-zone img { margin-inline: auto; }
 
 .bulle-graphe {
   position: absolute; top: 4px; transform: translateX(-50%);

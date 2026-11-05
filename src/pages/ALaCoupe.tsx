@@ -50,6 +50,7 @@ function ChoixPhoto({ photo, surPhoto, nomFichier = 'photo-coupe' }: {
 }) {
   const [enCours, setEnCours] = useState(false)
   const [agrandie, setAgrandie] = useState(false)
+  const [niveauZoom, setNiveauZoom] = useState(1)
   const appareil = useRef<HTMLInputElement>(null)
   const galerie = useRef<HTMLInputElement>(null)
   const lit = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -67,25 +68,36 @@ function ChoixPhoto({ photo, surPhoto, nomFichier = 'photo-coupe' }: {
     lien.download = `${normalise(nomFichier).replace(/[^a-z0-9]+/g, '-') || 'photo-coupe'}.jpg`
     lien.click()
   }
+  const ouvreZoom = () => { setNiveauZoom(1); setAgrandie(true) }
   return (
     <div className="pile">
       {photo && (
         <>
-          <button type="button" className="photo-coupe-apercu" onClick={() => setAgrandie(true)} aria-label="Agrandir la photo">
+          <button type="button" className="photo-coupe-apercu" onClick={ouvreZoom} aria-label="Agrandir la photo">
             <img src={photo} alt="Photo de la pièce" />
           </button>
           <div className="ligne" style={{ flexWrap: 'wrap' }}>
-            <button type="button" className="champ" onClick={() => setAgrandie(true)}>Agrandir la photo</button>
+            <button type="button" className="champ" onClick={ouvreZoom}>Agrandir la photo</button>
             <button type="button" className="champ" onClick={telecharge}>Télécharger la photo</button>
           </div>
           {agrandie && (
             <div className="photo-coupe-zoom" role="dialog" aria-modal="true" aria-label="Photo agrandie"
               onClick={() => setAgrandie(false)}>
               <button type="button" className="photo-coupe-fermer" onClick={() => setAgrandie(false)}>Fermer</button>
-              <img src={photo} alt="Photo agrandie de la pièce" onClick={(e) => e.stopPropagation()} />
-              <button type="button" className="champ" onClick={(e) => { e.stopPropagation(); telecharge() }}>
-                Télécharger la photo
-              </button>
+              <div className="photo-coupe-commandes" onClick={(e) => e.stopPropagation()}>
+                <button type="button" aria-label="Réduire le zoom" disabled={niveauZoom === 1}
+                  onClick={() => setNiveauZoom((n) => Math.max(1, n - 0.5))}>−</button>
+                <span>Zoom {niveauZoom}×</span>
+                <button type="button" aria-label="Augmenter le zoom" disabled={niveauZoom === 3}
+                  onClick={() => setNiveauZoom((n) => Math.min(3, n + 0.5))}>+</button>
+                <button type="button" className="champ" onClick={telecharge}>Télécharger la photo</button>
+              </div>
+              <div className="photo-coupe-zone" onClick={(e) => e.stopPropagation()}>
+                <img src={photo} alt="Photo agrandie de la pièce"
+                  style={niveauZoom === 1 ? undefined : {
+                    width: `${niveauZoom * 80}vw`, maxWidth: 'none', maxHeight: 'none',
+                  }} />
+              </div>
             </div>
           )}
         </>

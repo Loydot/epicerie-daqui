@@ -1,8 +1,8 @@
 /**
  * Réduit une photo prise au téléphone (plusieurs Mo) à un JPEG d'environ
- * 100 Ko, assez léger pour se synchroniser comme du texte.
+ * 100–300 Ko, assez léger pour se synchroniser tout en restant lisible au zoom.
  */
-export async function photoReduite(fichier: File, cote = 900): Promise<string> {
+export async function photoReduite(fichier: File, cote = 1800): Promise<string> {
   const image = await createImageBitmap(fichier)
   const echelle = Math.min(1, cote / Math.max(image.width, image.height))
   const toile = document.createElement('canvas')
@@ -10,5 +10,5 @@ export async function photoReduite(fichier: File, cote = 900): Promise<string> {
   toile.height = Math.round(image.height * echelle)
   toile.getContext('2d')!.drawImage(image, 0, 0, toile.width, toile.height)
   image.close()
-  return toile.toDataURL('image/jpeg', 0.72)
+  return toile.toDataURL('image/jpeg', 0.82)
 }
