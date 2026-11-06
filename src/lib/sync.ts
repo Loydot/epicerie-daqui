@@ -1,6 +1,6 @@
 import { db, pendantApplicationDuServeur, TABLES_SYNCHRONISEES, type TableSynchronisee } from '../db/db'
 import { supabase } from './supabase'
-import { versServeur } from './sync-payload'
+import { contenuEnvoyeToujoursActuel, versServeur } from './sync-payload'
 
 /**
  * Synchronisation entre la base locale et Supabase.
@@ -92,7 +92,12 @@ async function envoie(): Promise<number> {
     const cle = CLE_PRIMAIRE[nom]
     await db.transaction('rw', table, async () => {
       for (const ligne of aEnvoyer) {
-        await table.update((ligne as Record<string, unknown>)[cle] as string, { aSynchroniser: 0 })
+        const identifiant = (ligne as Record<string, unknown>)[cle] as string
+        const actuelle = await table.get(identifiant) as Record<string, unknown> | undefined
+        if (!actuelle || !contenuEnvoyeToujoursActuel(
+          nom, ligne as Record<string, unknown>, actuelle,
+        )) continue
+        await table.update(identifiant, { aSynchroniser: 0 })
       }
     })
     total += aEnvoyer.length

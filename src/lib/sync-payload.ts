@@ -24,3 +24,15 @@ export function versServeur(nom: string, ligne: Record<string, unknown>): Record
   }
   return sortie
 }
+
+/** Garde en attente une édition locale arrivée pendant l'envoi de l'instantané. */
+export function contenuEnvoyeToujoursActuel(
+  nom: string,
+  instantane: Record<string, unknown>,
+  actuel: Record<string, unknown>,
+): boolean {
+  const stable = (ligne: Record<string, unknown>) => JSON.stringify(
+    Object.entries(versServeur(nom, ligne)).sort(([a], [b]) => a.localeCompare(b)),
+  )
+  return stable(instantane) === stable(actuel)
+}

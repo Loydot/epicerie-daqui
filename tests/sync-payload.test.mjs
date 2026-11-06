@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { versServeur } from '../src/lib/sync-payload.ts'
+import { contenuEnvoyeToujoursActuel, versServeur } from '../src/lib/sync-payload.ts'
 
 test('envoi groupé des équipements anciens et configurés sans champs calendrier NULL', () => {
   const lignes = [
@@ -35,4 +35,18 @@ test('envoi des factures créées avant les devis sans type NULL', () => {
     { id: 'ancienne', numero: '2026-0001', type: 'facture', lien: '' },
     { id: 'devis', type: 'devis', lien: 'f1' },
   ])
+})
+
+test('une édition arrivée pendant l’envoi reste en attente de synchronisation', () => {
+  const instantane = {
+    id: 'p1', nom: 'Pâté', prixVente: 4.5, majLe: '2026-11-06T10:00:00.000Z', aSynchroniser: 1,
+  }
+  const modifiePendantEnvoi = {
+    ...instantane, prixVente: 5, aSynchroniser: 1,
+  }
+  assert.equal(contenuEnvoyeToujoursActuel('produits', instantane, instantane), true)
+  assert.equal(contenuEnvoyeToujoursActuel('produits', instantane, modifiePendantEnvoi), false)
+  assert.equal(contenuEnvoyeToujoursActuel('produits', instantane, {
+    ...instantane, aSynchroniser: 0,
+  }), true)
 })
