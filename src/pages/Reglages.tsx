@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, setReglage, uid } from '../db/db'
-import { derniereSauvegarde, exporteTout, joursDepuis, RYTHME_JOURS } from '../lib/sauvegardes'
+import { derniereSauvegarde, prepareSauvegarde, confirmeSauvegarde, joursDepuis, RYTHME_JOURS } from '../lib/sauvegardes'
 import { dateHeureFr } from '../lib/format'
 import EtatSynchro from '../components/EtatSynchro'
 import { IconeCorbeille, IconeExport, IconePlus, IconeValide } from '../components/Icones'
@@ -19,9 +19,22 @@ export default function Reglages() {
   const derniere = useLiveQuery(derniereSauvegarde, [], '') ?? ''
   const jours = joursDepuis(derniere)
 
+  const [copie, setCopie] = useState<Awaited<ReturnType<typeof prepareSauvegarde>> & { url: string } | null>(null)
+  const [enCours, setEnCours] = useState(false)
+  useEffect(() => () => { if (copie) URL.revokeObjectURL(copie.url) }, [copie])
+
   const sauvegarde = async () => {
-    const n = await exporteTout()
-    setMessage(`Sauvegarde téléchargée : ${n} fiches. Rangez le fichier en lieu sûr (clé USB, Drive…).`)
+    setEnCours(true)
+    setCopie(null)
+    setMessage('')
+    try {
+      const resultat = await prepareSauvegarde()
+      setCopie({ ...resultat, url: URL.createObjectURL(resultat.fichier) })
+    } catch {
+      setMessage('Impossible de préparer le fichier. Réessayez depuis cet appareil.')
+    } finally {
+      setEnCours(false)
+    }
   }
 
   const videTout = async () => {
@@ -90,9 +103,22 @@ export default function Reglages() {
         <p className="petit" style={{ color: jours == null || jours >= RYTHME_JOURS ? 'var(--alerte)' : undefined }}>
           {derniere ? `Dernière sauvegarde : ${dateHeureFr(derniere)}` : 'Aucune sauvegarde faite pour l’instant.'}
         </p>
-        <button type="button" className="principal large" onClick={sauvegarde}>
-          <IconeExport /> Exporter une sauvegarde complète
+        <button type="button" className="principal large" disabled={enCours} onClick={sauvegarde}>
+          <IconeExport /> {enCours ? 'Préparation…' : 'Exporter une sauvegarde complète'}
         </button>
+        {copie && <>
+          <p role="status">Fichier prêt · {copie.total} fiches. Choisissez où le conserver.</p>
+          <a className="bouton large" href={copie.url} download={copie.fichier.name}>Télécharger le fichier</a>
+          {navigator.canShare?.({ files: [copie.fichier] }) && <button type="button" onClick={async () => {
+            try { await navigator.share({ files: [copie.fichier] }) }
+            catch (e) { if ((e as Error).name !== 'AbortError') setMessage('Utilisez le lien Télécharger le fichier.') }
+          }}>Enregistrer ou partager…</button>}
+          <button type="button" onClick={async () => {
+            await confirmeSauvegarde(copie.exporteLe)
+            setCopie(null)
+            setMessage('Sauvegarde confirmée.')
+          }}>J’ai vérifié que le fichier est enregistré</button>
+        </>}
         <Link to="/sauvegardes" className="bouton large">
           Consulter une sauvegarde et récupérer des fiches
         </Link>

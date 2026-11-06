@@ -92,12 +92,3 @@ export function exporteLotsCsv(lots: Lot[], nomProduit: (id: string) => string):
       l.quantite, l.statut, l.operateur, l.retireLe ? dateHeureFr(l.retireLe) : '',
     ]))
 }
-
-/** Sauvegarde complete : sert de filet de sécurité avant la synchro Supabase. */
-export function exporteSauvegarde(donnees: Record<string, unknown[]>): void {
-  telecharge(
-    `sauvegarde-haccp-${jourDe()}.json`,
-    JSON.stringify({ version: 1, exporteLe: new Date().toISOString(), donnees }, null, 2),
-    'application/json',
-  )
-}

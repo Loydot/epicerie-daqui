@@ -1,6 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie'
 import { db, getReglage, setReglage, TABLES_SYNCHRONISEES, type TableSynchronisee } from '../db/db'
-import { exporteSauvegarde } from './export'
+import { jourDe } from './format'
 import { dateFr, dateHeureFr } from './format'
 
 /**
@@ -40,18 +40,29 @@ class ArchivesDb extends Dexie {
 
 export const archives = new ArchivesDb()
 
-export async function exporteTout(): Promise<number> {
-  const donnees: Record<string, unknown[]> = {}
+export async function prepareSauvegarde() {
+  const exporteLe = new Date().toISOString()
+  const parties: BlobPart[] = [JSON.stringify({ version: 1, exporteLe }).slice(0, -1) + ',"donnees":{']
   let total = 0
-  for (const t of TABLES_SYNCHRONISEES) {
-    donnees[t] = await db.table(t).toArray()
-    total += donnees[t].length
-  }
-  exporteSauvegarde(donnees)
-  // Partagé entre appareils : le rappel tombe dès que l'un d'eux a sauvegardé.
-  await setReglage(CLE_DERNIERE, new Date().toISOString())
-  return total
+  // Un seul instantané, sans conserver toutes les photos décodées en mémoire.
+  await db.transaction('r', TABLES_SYNCHRONISEES.map(t => db.table(t)), async () => {
+    for (const [i, t] of TABLES_SYNCHRONISEES.entries()) {
+      parties.push((i ? ',' : '') + JSON.stringify(t) + ':[')
+      let premiere = true
+      await db.table(t).each(ligne => {
+        parties.push(new Blob([(premiere ? '' : ',') + JSON.stringify(ligne)]))
+        premiere = false
+        total++
+      })
+      parties.push(']')
+    }
+  })
+  parties.push('}}')
+  const fichier = new File(parties, `sauvegarde-haccp-${jourDe()}.json`, { type: 'application/json' })
+  return { fichier, total, exporteLe }
 }
+
+export const confirmeSauvegarde = (date: string) => setReglage(CLE_DERNIERE, date)
 
 export const derniereSauvegarde = () => getReglage(CLE_DERNIERE)
 
